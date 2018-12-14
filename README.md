@@ -50,3 +50,6 @@ and inputs JSON, and is determined by the developer to be ready for use.  These 
 ### Useful Workflow Development tools and resources
 
 https://cromwell.readthedocs.io/en/develop/WOMtool/
+
+Web based WDL viewer
+http://pb.opensource.epam.com/

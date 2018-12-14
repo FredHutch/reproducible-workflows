@@ -11,7 +11,7 @@ The processing-for-variant-discovery-gatk4 WDL pipeline implements data pre-proc
 - Pair-end sequencing data in unmapped BAM (uBAM) format
 - One or more read groups, one per uBAM file, all belonging to a single sample (SM)
 - Input uBAM files must additionally comply with the following requirements:
-  - filenames all have the same suffix (we use ".unmapped.bam")
+  - filenames all have the same suffix: ".unmapped.bam"
   - files must pass validation by ValidateSamFile
   - reads are provided in query-sorted order
   - all reads must have an RG tag
@@ -34,6 +34,6 @@ Cromwell version support
 
 **Inputs/Parameters:** `sample.inputs.json` defines hg38 as the reference genome, and indicates the location in AWS S3 where the Broad Resource Bundle reference files for this genome are
 
-**Batch File:** `exampleBatch.csv`, indicating the locations of the unmapped bams, the location of the bed file associated with each dataset in S3. 
+**Batch File:** `exampleBatch.txt`, indicating the locations of the unmapped bams (with filenames of `sampleName.unmapped.bam`), the location of the bed file associated with each dataset in S3 in tab separated format with a single header row.  
 
 **Output:** A clean BAM file ready for downstream variant calling and it's index written back to S3.
