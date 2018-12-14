@@ -1,0 +1,2 @@
+bamLocation	bedLocation	sampleName
+s3://fh-pi-paguirigan-a/hackathon2018/rawData/Sample_CM-M40-O40-K20-R1/CM-M40-O40-K20-R1.unmapped.bam	s3://fh-pi-paguirigan-a/hackathon2018/seqPanelBed/TruSight-One-Illumina/TruSight_One_v1.1.bed	CM-M40-O40-K20-R1
