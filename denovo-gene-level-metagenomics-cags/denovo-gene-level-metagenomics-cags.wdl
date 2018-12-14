@@ -1,6 +1,9 @@
 workflow denovoGeneLevelMetagenomicsCAGs {
 
   File manifest
+  File tax_db
+  File taxonmap
+  File taxonnodes
   Array[Array[String]] inputSamples = read_tsv(manifest)
 
   scatter (sample in inputSamples) {
@@ -8,10 +11,9 @@ workflow denovoGeneLevelMetagenomicsCAGs {
       input: input_file=sample[1], 
              sample_name=sample[0]
     }
-  }
-  scatter (assembly in deNovoAssembly.assembly) {
+
     call Annotation { 
-      input: assembly=assembly 
+      input: assembly=deNovoAssembly.assembly
     }
   }
 
@@ -20,17 +22,23 @@ workflow denovoGeneLevelMetagenomicsCAGs {
         gff_list=Annotation.gff
   }
 
+  call AnnotateProteinsTax {
+    input: 
+      ref=tax_db,
+      taxonmap=taxonmap,
+      taxonnodes=taxonnodes,
+      query=IntegrateAssemblies.integrated_assembly_fastp
+  }
+
   scatter (sample in inputSamples) {
     call AlignDiamond { 
       input: input_file=sample[1], 
              sample_name=sample[0],
              ref=IntegrateAssemblies.integrated_assembly_dmnd
     }
-  }
 
-  scatter (alignment in AlignDiamond.alignment) {
     call FilterFAMLI { 
-      input: alignment=alignment
+      input: alignment=AlignDiamond.alignment
     }
   }
 
@@ -38,6 +46,7 @@ workflow denovoGeneLevelMetagenomicsCAGs {
     File integrated_assembly_hdf5=IntegrateAssemblies.integrated_assembly_hdf5
     File integrated_assembly_dmnd=IntegrateAssemblies.integrated_assembly_dmnd
     Array[File] famli_abundance=FilterFAMLI.abundance
+    File integrated_assembly_tax=AnnotateProteinsTax.tax_annot
   }
 
 }
@@ -48,7 +57,7 @@ task deNovoAssembly {
   String sample_name
 
   runtime {
-    docker: "quay.io/fhcrc-microbiome/metaspades:v3.11.1--10"
+    docker: "quay.io/fhcrc-microbiome/metaspades@sha256:5cf9216f3536c1b1f1f214972ba89d358033cfea5d28ce90b8a3fb7764eccda5"
     memory: "64G"
     cpu: "16"
   }
@@ -75,7 +84,7 @@ task Annotation {
   String sample_name = sub(sub(assembly, ".*/", ""), ".scaffolds.fasta.gz$", "")
 
   runtime {
-    docker: "quay.io/fhcrc-microbiome/metaspades:v3.11.1--8"
+    docker: "quay.io/fhcrc-microbiome/metaspades@sha256:cb5885c0f37bb2a264c81753fb060212db98c39d9962464616a395aab5fdde15"
     memory: "16G"
     cpu: "4"
   }
@@ -105,7 +114,7 @@ task IntegrateAssemblies {
   Array[File] gff_list
 
   runtime {
-    docker: "quay.io/fhcrc-microbiome/integrate-metagenomic-assemblies:v0.5"
+    docker: "quay.io/fhcrc-microbiome/integrate-metagenomic-assemblies@sha256:dc8b0ffc62126f27219708e4b311f23878faca9e4a462e3c8ef07632ed11e531"
     memory: "16G"
     cpu: "4"
   }
@@ -127,8 +136,47 @@ task IntegrateAssemblies {
         --temp-folder ./
   }
   output {
+    File integrated_assembly_fastp = "integrated_assembly.fastp.gz"
     File integrated_assembly_hdf5 = "integrated_assembly.hdf5"
     File integrated_assembly_dmnd = "integrated_assembly.dmnd"
+  }
+}
+
+task AnnotateProteinsTax {
+
+  File query
+  File ref
+  File taxonmap
+  File taxonnodes
+  String query_base = sub(sub(query, ".*/", ""), ".fastp.gz", "")
+  String ref_base = sub(sub(ref, ".*/", ""), ".dmnd", "")
+  String top_pct = "1"
+  String blocks = "5"
+  String threads = "4"
+
+  runtime {
+    docker: "quay.io/fhcrc-microbiome/famli@sha256:cd57ca9edd302e3b0803b8374e6e1d70eaa32edff9210f8b6dff28d373835b22"
+    memory: "16G"
+    cpu: "4"
+  }
+
+  command {
+    set -e; 
+    diamond \
+      blastp \
+      --db ${ref} \
+      --query ${query} \
+      --out ${query_base}.${ref_base}.tax \
+      --taxonmap ${taxonmap} \
+      --taxonnodes ${taxonnodes} \
+      --outfmt 102 \
+      --top ${top_pct} \
+      -b ${blocks} \
+      --threads ${threads}
+    gzip "${query_base}.${ref_base}.tax"
+  }
+  output {
+    File tax_annot = "${query_base}.${ref_base}.tax.gz"
   }
 }
 
@@ -139,7 +187,7 @@ task AlignDiamond {
   File ref
 
   runtime {
-    docker: "quay.io/fhcrc-microbiome/famli:v1.1"
+    docker: "quay.io/fhcrc-microbiome/famli@sha256:cd57ca9edd302e3b0803b8374e6e1d70eaa32edff9210f8b6dff28d373835b22"
     memory: "16G"
     cpu: "4"
   }
@@ -173,7 +221,7 @@ task FilterFAMLI {
   String output_fp = sub(sub(alignment, ".*/", ""), ".aln.gz", ".json")
 
   runtime {
-    docker: "quay.io/fhcrc-microbiome/famli:v1.1"
+    docker: "quay.io/fhcrc-microbiome/famli@sha256:cd57ca9edd302e3b0803b8374e6e1d70eaa32edff9210f8b6dff28d373835b22"
     memory: "16G"
     cpu: "4"
   }
