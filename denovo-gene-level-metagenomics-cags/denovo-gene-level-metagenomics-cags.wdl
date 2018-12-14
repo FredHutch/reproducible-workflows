@@ -170,6 +170,7 @@ task AlignDiamond {
 task FilterFAMLI {
 
   File alignment
+  String output_fp = sub(sub(alignment, ".*/", ""), ".aln.gz", ".json")
 
   runtime {
     docker: "quay.io/fhcrc-microbiome/famli:v1.1"
@@ -179,18 +180,17 @@ task FilterFAMLI {
 
   command {
     set -e; 
-    output_fp="$(echo ${alignment} | sed 's/.aln//')"; 
     famli \
         filter \
         --input "${alignment}" \
-        --output "$output_fp" \
+        --output "${output_fp}" \
         --threads 4 \
         --batchsize 50000000
 
-    gzip "$output_fp"
+    gzip "${output_fp}"
   }
   output {
-    File abundance = "$output_fp.gz"
+    File abundance = "${output_fp}.gz"
   }
 }
 
