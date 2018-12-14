@@ -39,12 +39,13 @@
 
 # WORKFLOW DEFINITION
 workflow PreProcessingForVariantDiscovery_GATK4 {
-
-  String sample_name
-  String ref_name
-
   File batchfile
-  String unmapped_bam_suffix
+
+# Broad had these as inputs to the workflow b/c the workflow was structured to run once on an array of bams 
+# corresponding to one sample.  We want the workflow to scatter over all the samples and put one bam in for each sample. 
+  #String sample_name
+  #String ref_name
+  #String base_file_name = sample_name + "." + ref_name
 
   File ref_fasta
   File ref_fasta_index
@@ -74,7 +75,7 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
   Int preemptible_tries
   Int agg_preemptible_tries
 
-  String base_file_name = sample_name + "." + ref_name
+
 
   Array[File] flowcell_unmapped_bams = read_lines(batchfile) # this needs to pull out the list of filenames in the columns
 
@@ -91,7 +92,7 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
   scatter (unmapped_bam in flowcell_unmapped_bams) {
 
     # Get the basename, i.e. strip the filepath and the extension
-    String bam_basename = basename(unmapped_bam, unmapped_bam_suffix)
+    String bam_basename = basename(unmapped_bam, ".bam")
 
     # Map reads to reference
     call SamToFastqAndBwaMem {
