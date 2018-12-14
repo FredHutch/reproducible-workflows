@@ -45,3 +45,8 @@ and inputs JSON, and is determined by the developer to be ready for use.  These 
 #### Under Development Workflows
 
   * Coming soon...
+
+
+### Useful Workflow Development tools and resources
+
+https://cromwell.readthedocs.io/en/develop/WOMtool/
