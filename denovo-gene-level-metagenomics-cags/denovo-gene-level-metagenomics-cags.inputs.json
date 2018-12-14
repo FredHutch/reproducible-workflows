@@ -1,0 +1,4 @@
+{
+  "denovoGeneLevelMetagenomicsCAGs.manifest": "s3://fh-div-adm-scicomp-cromwell-tests/cromwell-tests/denovo-gene-level-metagenomics-cags/inputs/manifest.txt"
+}
+

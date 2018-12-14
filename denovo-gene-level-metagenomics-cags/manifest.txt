@@ -1,0 +1,2 @@
+SRR1390645	s3://fh-div-adm-scicomp-cromwell-tests/cromwell-tests/denovo-gene-level-metagenomics-cags/inputs/SRR1390645.fastq.gz
+SRR2057021	s3://fh-div-adm-scicomp-cromwell-tests/cromwell-tests/denovo-gene-level-metagenomics-cags/inputs/SRR2057021.fastq.gz
