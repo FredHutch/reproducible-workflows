@@ -20,10 +20,26 @@ workflow denovoGeneLevelMetagenomicsCAGs {
         gff_list=Annotation.gff
   }
 
+  scatter (sample in inputSamples) {
+    call AlignDiamond { 
+      input: input_file=sample[1], 
+             sample_name=sample[0],
+             ref=IntegrateAssemblies.integrated_assembly_dmnd
+    }
+  }
+
+  scatter (alignment in AlignDiamond.alignment) {
+    call FilterFAMLI { 
+      input: alignment=alignment
+    }
+  }
+
   output {
     File integrated_assembly_hdf5=IntegrateAssemblies.integrated_assembly_hdf5
     File integrated_assembly_dmnd=IntegrateAssemblies.integrated_assembly_dmnd
+    Array[File] famli_abundance=FilterFAMLI.abundance
   }
+
 }
 
 task deNovoAssembly {
@@ -38,13 +54,14 @@ task deNovoAssembly {
   }
 
   command {
+    set -e; 
     spades.py \
         -s ${input_file} \
         -o ${sample_name} \
         -t 16 \
         --phred-offset 33 \
         -m 64; 
-    mv output/scaffolds.fasta ${sample_name}.scaffolds.fasta
+    mv ${sample_name}/scaffolds.fasta ${sample_name}.scaffolds.fasta
     gzip ${sample_name}.scaffolds.fasta
   }
   output {
@@ -63,19 +80,20 @@ task Annotation {
   }
 
   command {
+    set -e; 
     sample_name="$(echo ${assembly} | sed 's/.*\///' | sed 's/.scaffolds.fasta.gz//')"
     gunzip -c "${assembly}" > scaffolds.fasta; 
     prokka \
-        --outdir ./ \
+        --outdir output/ \
         --prefix "$sample_name" \
         --cpus 4 \
         --metagenome \
         scaffolds.fasta; 
-    gzip "$sample_name.fastp";
-    gzip "$sample_name.gff"  }
+    gzip "output/$sample_name.fastp";
+    gzip "output/$sample_name.gff"  }
   output {
-    File fastp = "$sample_name.fastp"
-    File gff = "$sample_name.gff"
+    File fastp = "output/$sample_name.fastp"
+    File gff = "output/$sample_name.gff"
   }
 }
 
@@ -91,9 +109,12 @@ task IntegrateAssemblies {
   }
 
   command {
+    set -e; 
     mkdir assembly_files;
-    for f in ${sep=" " fastp_list}; do cp "$f" assembly_files/; done; 
-    for f in ${sep=" " gff_list}; do cp "$f" assembly_files/; done; 
+    echo ${sep=" " fastp_list}; 
+    echo ${sep=" " gff_list}; 
+    for f in ${sep=" " fastp_list}; do ln -s "$f" assembly_files/; done; 
+    for f in ${sep=" " gff_list}; do ln -s "$f" assembly_files/; done; 
     integrate_assemblies.py \
         --gff-folder assembly_files/ \
         --prot-folder assembly_files/ \
@@ -108,3 +129,66 @@ task IntegrateAssemblies {
     File integrated_assembly_dmnd = "integrated_assembly.dmnd"
   }
 }
+
+task AlignDiamond {
+
+  File input_file
+  String sample_name
+  File ref
+
+  runtime {
+    docker: "quay.io/fhcrc-microbiome/famli:v1.1"
+    memory: "16G"
+    cpu: "4"
+  }
+
+  command {
+    set -e; 
+    diamond \
+        blastx \
+        --query "${input_file}" \
+        --out "${sample_name}.aln" \
+        --threads 4 \
+        --db  ${ref} \
+        --outfmt  6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen \
+        --min-score  20 \
+        --query-cover  95 \
+        --id 80 \
+        --top 10 \
+        --block-size  4 \
+        --query-gencode 11 \
+        --unal 0; 
+    gzip "${sample_name}.aln"
+  }
+  output {
+    File alignment = "${sample_name}.aln.gz"
+  }
+}
+
+task FilterFAMLI {
+
+  File alignment
+
+  runtime {
+    docker: "quay.io/fhcrc-microbiome/famli:v1.1"
+    memory: "16G"
+    cpu: "4"
+  }
+
+  command {
+    set -e; 
+    output_fp="$(echo ${alignment} | sed 's/.aln//')"; 
+    famli \
+        filter \
+        --input "${alignment}" \
+        --output "$output_fp" \
+        --threads 4 \
+        --batchsize 50000000
+
+    gzip "$output_fp"
+  }
+  output {
+    File abundance = "$output_fp.gz"
+  }
+}
+
