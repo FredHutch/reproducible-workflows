@@ -72,6 +72,7 @@ task deNovoAssembly {
 task Annotation {
 
   File assembly
+  String sample_name = sub(sub(assembly, ".*/", ""), ".scaffolds.fasta.gz$", "")
 
   runtime {
     docker: "quay.io/fhcrc-microbiome/metaspades:v3.11.1--8"
@@ -81,19 +82,20 @@ task Annotation {
 
   command {
     set -e; 
-    sample_name="$(echo ${assembly} | sed 's/.*\///' | sed 's/.scaffolds.fasta.gz//')"
     gunzip -c "${assembly}" > scaffolds.fasta; 
     prokka \
         --outdir output/ \
-        --prefix "$sample_name" \
+        --prefix "${sample_name}" \
         --cpus 4 \
         --metagenome \
         scaffolds.fasta; 
-    gzip "output/$sample_name.fastp";
-    gzip "output/$sample_name.gff"  }
+    mv "output/${sample_name}.faa" "output/${sample_name}.fastp";
+    gzip "output/${sample_name}.fastp";
+    gzip "output/${sample_name}.gff"  
+  }
   output {
-    File fastp = "output/$sample_name.fastp"
-    File gff = "output/$sample_name.gff"
+    File fastp = "output/${sample_name}.fastp.gz"
+    File gff = "output/${sample_name}.gff.gz"
   }
 }
 
