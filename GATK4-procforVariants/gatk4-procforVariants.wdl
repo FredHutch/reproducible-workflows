@@ -40,12 +40,12 @@
 # WORKFLOW DEFINITION
 workflow PreProcessingForVariantDiscovery_GATK4 {
   File batchfile
+  Array[Object] batchInfo = read_objects(batchFile)
 
 # Broad had these as inputs to the workflow b/c the workflow was structured to run once on an array of bams 
 # corresponding to one sample.  We want the workflow to scatter over all the samples and put one bam in for each sample. 
-  #String sample_name
-  #String ref_name
-  #String base_file_name = sample_name + "." + ref_name
+  #Array[File] flowcell_unmapped_bams = read_lines(batchfile) # this needs to pull out the list of filenames in the columns
+
 
   File ref_fasta
   File ref_fasta_index
@@ -75,9 +75,18 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
   Int preemptible_tries
   Int agg_preemptible_tries
 
+ 
+  scatter (job in batchInfo){
+    String sampleName = job.sampleName
+    String bamLocation = job.bamLocation
+    String bedLocation = job.bedLocation
+  # Get the basename, i.e. strip the filepath and the extension
+    String bam_basename = basename(bamLocation, ".bam")
+  #String sample_name
+    String ref_name
+    String base_file_name = sampleName + "." + ref_name
 
-
-  Array[File] flowcell_unmapped_bams = read_lines(batchfile) # this needs to pull out the list of filenames in the columns
+    Array[String] sequenceIntervals = read_lines(bedLocation)
 
   # Get the version of BWA to include in the PG record in the header of the BAM produced
   # by MergeBamAlignment.
@@ -88,68 +97,58 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
       preemptible_tries = preemptible_tries
   }
 
-  # Align flowcell-level unmapped input bams in parallel
-  scatter (unmapped_bam in flowcell_unmapped_bams) {
-
-    # Get the basename, i.e. strip the filepath and the extension
-    String bam_basename = basename(unmapped_bam, ".bam")
-
-    # Map reads to reference
-    call SamToFastqAndBwaMem {
-      input:
-        input_bam = unmapped_bam,
-        bwa_commandline = bwa_commandline,
-        output_bam_basename = bam_basename + ".unmerged",
-        ref_fasta = ref_fasta,
-        ref_fasta_index = ref_fasta_index,
-        ref_dict = ref_dict,
-        docker_image = gotc_docker,
-        bwa_path = gotc_path,
-        gotc_path = gotc_path,
-        disk_size = flowcell_medium_disk,
-        preemptible_tries = preemptible_tries,
-        compression_level = compression_level
-     }
-
-    # Merge original uBAM and BWA-aligned BAM
-    call MergeBamAlignment {
-      input:
-        unmapped_bam = unmapped_bam,
-        bwa_commandline = bwa_commandline,
-        bwa_version = GetBwaVersion.version,
-        aligned_bam = SamToFastqAndBwaMem.output_bam,
-        output_bam_basename = bam_basename + ".aligned.unsorted",
-        ref_fasta = ref_fasta,
-        ref_fasta_index = ref_fasta_index,
-        ref_dict = ref_dict,
-        docker_image = gatk_docker,
-        gatk_path = gatk_path,
-        disk_size = flowcell_medium_disk,
-        preemptible_tries = preemptible_tries,
-        compression_level = compression_level
-    }
+  # Map reads to reference
+  call SamToFastqAndBwaMem {
+    input:
+      input_bam = bamLocation,
+      bwa_commandline = bwa_commandline,
+      output_bam_basename = bam_basename + ".unmerged",
+      ref_fasta = ref_fasta,
+      ref_fasta_index = ref_fasta_index,
+      ref_dict = ref_dict,
+      docker_image = gotc_docker,
+      bwa_path = gotc_path,
+      gotc_path = gotc_path,
+      disk_size = flowcell_medium_disk,
+      preemptible_tries = preemptible_tries,
+      compression_level = compression_level
   }
 
-  # Aggregate aligned+merged flowcell BAM files and mark duplicates
-  # We take advantage of the tool's ability to take multiple BAM inputs and write out a single output
-  # to avoid having to spend time just merging BAM files.
-  call MarkDuplicates {
+  # Merge original uBAM and BWA-aligned BAM
+  call MergeBamAlignment {
     input:
-      input_bams = MergeBamAlignment.output_bam,
-      output_bam_basename = base_file_name + ".aligned.unsorted.duplicates_marked",
-      metrics_filename = base_file_name + ".duplicate_metrics",
+      unmapped_bam = bamLocation,
+      bwa_commandline = bwa_commandline,
+      bwa_version = GetBwaVersion.version,
+      aligned_bam = SamToFastqAndBwaMem.output_bam,
+      output_bam_basename = bam_basename + ".aligned.unsorted",
+      ref_fasta = ref_fasta,
+      ref_fasta_index = ref_fasta_index,
+      ref_dict = ref_dict,
       docker_image = gatk_docker,
       gatk_path = gatk_path,
-      disk_size = agg_large_disk,
-      compression_level = compression_level,
-      preemptible_tries = agg_preemptible_tries
+      disk_size = flowcell_medium_disk,
+      preemptible_tries = preemptible_tries,
+      compression_level = compression_level
   }
+  # mark duplicates
+  # call MarkDuplicates {
+  #   input:
+  #     input_bams = MergeBamAlignment.output_bam,
+  #     output_bam_basename = base_file_name + ".aligned.unsorted.duplicates_marked",
+  #     metrics_filename = base_file_name + ".duplicate_metrics",
+  #     docker_image = gatk_docker,
+  #     gatk_path = gatk_path,
+  #     disk_size = agg_large_disk,
+  #     compression_level = compression_level,
+  #     preemptible_tries = agg_preemptible_tries
+  # }
 
-  # Sort aggregated+deduped BAM file and fix tags
+  # Sort aggregated BAM file and fix tags
   call SortAndFixTags {
     input:
-      input_bam = MarkDuplicates.output_bam,
-      output_bam_basename = base_file_name + ".aligned.duplicate_marked.sorted",
+      input_bam = MergeBamAlignment.output_bam,
+      output_bam_basename = base_file_name + ".aligned.sorted",
       ref_dict = ref_dict,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
@@ -160,16 +159,16 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
       compression_level = compression_level
   }
 
-  # Create list of sequences for scatter-gather parallelization
-  call CreateSequenceGroupingTSV {
-    input:
-      ref_dict = ref_dict,
-      docker_image = python_docker,
-      preemptible_tries = preemptible_tries
-  }
+  # # Create list of sequences for scatter-gather parallelization
+  # call CreateSequenceGroupingTSV {
+  #   input:
+  #     ref_dict = ref_dict,
+  #     docker_image = python_docker,
+  #     preemptible_tries = preemptible_tries
+  # }
 
   # Perform Base Quality Score Recalibration (BQSR) on the sorted BAM in parallel
-  scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping) {
+  scatter (subgroup in sequenceIntervals) { # sequenceIntervals may need to be sequenceInvervals.somevariable, I dont' know
     # Generate the recalibration model by interval
     call BaseRecalibrator {
       input:
@@ -202,7 +201,7 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
       preemptible_tries = preemptible_tries
   }
 
-  scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
+  scatter (subgroup in sequenceIntervals) {
 
     # Apply the recalibration model by interval
     call ApplyBQSR {
@@ -233,7 +232,7 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
       preemptible_tries = agg_preemptible_tries,
       compression_level = compression_level
   }
-
+}
   # Outputs that will be retained when execution is complete
   output {
     File duplication_metrics = MarkDuplicates.duplicate_metrics
@@ -242,7 +241,7 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
     File analysis_ready_bam_index = GatherBamFiles.output_bam_index
     File analysis_ready_bam_md5 = GatherBamFiles.output_bam_md5
   }
-}
+
 
 # TASK DEFINITIONS
 
@@ -697,4 +696,5 @@ task GatherBamFiles {
     File output_bam_index = "${output_bam_basename}.bai"
     File output_bam_md5 = "${output_bam_basename}.bam.md5"
   }
+}
 }

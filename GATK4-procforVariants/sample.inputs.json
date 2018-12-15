@@ -3,7 +3,6 @@
   "PreProcessingForVariantDiscovery_GATK4.batchfile": "s3://fh-pi-paguirigan-a/hackathon2018/sample.batchfile.txt",
   "##_COMMENT2": "REFERENCE FILES",
   "PreProcessingForVariantDiscovery_GATK4.ref_name": "hg38",
-  "PreProcessingForVariantDiscovery_GATK4.unmapped_bam_suffix": ".bam",
   "PreProcessingForVariantDiscovery_GATK4.ref_dict": "s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.dict",
   "PreProcessingForVariantDiscovery_GATK4.ref_fasta": "s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.fasta.gz",
   "PreProcessingForVariantDiscovery_GATK4.ref_fasta_index": "s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.fasta.fai",
