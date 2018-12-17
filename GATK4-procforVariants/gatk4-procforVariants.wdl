@@ -46,7 +46,7 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
 # corresponding to one sample.  We want the workflow to scatter over all the samples and put one bam in for each sample. 
   #Array[File] flowcell_unmapped_bams = read_lines(batchfile) # this needs to pull out the list of filenames in the columns
 
-
+  String ref_name
   File ref_fasta
   File ref_fasta_index
   File ref_dict
@@ -78,15 +78,16 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
  
   scatter (job in batchInfo){
     String sampleName = job.sampleName
-    String bamLocation = job.bamLocation
-    String bedLocation = job.bedLocation
+    File bamLocation = job.bamLocation
+    File bedLocation = job.bedLocation
   # Get the basename, i.e. strip the filepath and the extension
     String bam_basename = basename(bamLocation, ".bam")
-  #String sample_name
-    String ref_name
-    String base_file_name = sampleName + "." + ref_name
 
-    Array[String] sequenceIntervals = read_lines(bedLocation)
+    String base_file_name = sampleName + "." + ref_name
+  # Get the bed file for this dataset
+    #Array[String] sequenceIntervals = read_lines(bedLocation)
+
+    Array[Array[String]] sequenceIntervals = read_tsv(bedLocation)
 
   # Get the version of BWA to include in the PG record in the header of the BAM produced
   # by MergeBamAlignment.
@@ -167,6 +168,9 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
   #     preemptible_tries = preemptible_tries
   # }
 
+
+
+
   # Perform Base Quality Score Recalibration (BQSR) on the sorted BAM in parallel
   scatter (subgroup in sequenceIntervals) { # sequenceIntervals may need to be sequenceInvervals.somevariable, I dont' know
     # Generate the recalibration model by interval
@@ -235,12 +239,13 @@ workflow PreProcessingForVariantDiscovery_GATK4 {
 }
   # Outputs that will be retained when execution is complete
   output {
-    File duplication_metrics = MarkDuplicates.duplicate_metrics
+    #File duplication_metrics = MarkDuplicates.duplicate_metrics
     File bqsr_report = GatherBqsrReports.output_bqsr_report
     File analysis_ready_bam = GatherBamFiles.output_bam
     File analysis_ready_bam_index = GatherBamFiles.output_bam_index
     File analysis_ready_bam_md5 = GatherBamFiles.output_bam_md5
   }
+}
 
 
 # TASK DEFINITIONS
@@ -441,46 +446,46 @@ task SortAndFixTags {
   }
 }
 
-# Mark duplicate reads to avoid counting non-independent observations
-task MarkDuplicates {
-  Array[File] input_bams
-  String output_bam_basename
-  String metrics_filename
+# # Mark duplicate reads to avoid counting non-independent observations
+# task MarkDuplicates {
+#   Array[File] input_bams
+#   String output_bam_basename
+#   String metrics_filename
 
-  Int compression_level
-  Int preemptible_tries
-  Int disk_size
-  String mem_size
+#   Int compression_level
+#   Int preemptible_tries
+#   Int disk_size
+#   String mem_size
 
-  String docker_image
-  String gatk_path
-  String java_opt
+#   String docker_image
+#   String gatk_path
+#   String java_opt
 
- # Task is assuming query-sorted input so that the Secondary and Supplementary reads get marked correctly.
- # This works because the output of BWA is query-grouped and therefore, so is the output of MergeBamAlignment.
- # While query-grouped isn't actually query-sorted, it's good enough for MarkDuplicates with ASSUME_SORT_ORDER="queryname"
-  command {
-    ${gatk_path} --java-options "-Dsamjdk.compression_level=${compression_level} ${java_opt}" \
-      MarkDuplicates \
-      --INPUT ${sep=' --INPUT ' input_bams} \
-      --OUTPUT ${output_bam_basename}.bam \
-      --METRICS_FILE ${metrics_filename} \
-      --VALIDATION_STRINGENCY SILENT \
-      --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500 \
-      --ASSUME_SORT_ORDER "queryname" \
-      --CREATE_MD5_FILE true
-  }
-  runtime {
-    preemptible: preemptible_tries
-    docker: docker_image
-    memory: mem_size
-    #disks: "local-disk " + disk_size + " HDD"
-  }
-  output {
-    File output_bam = "${output_bam_basename}.bam"
-    File duplicate_metrics = "${metrics_filename}"
-  }
-}
+#  # Task is assuming query-sorted input so that the Secondary and Supplementary reads get marked correctly.
+#  # This works because the output of BWA is query-grouped and therefore, so is the output of MergeBamAlignment.
+#  # While query-grouped isn't actually query-sorted, it's good enough for MarkDuplicates with ASSUME_SORT_ORDER="queryname"
+#   command {
+#     ${gatk_path} --java-options "-Dsamjdk.compression_level=${compression_level} ${java_opt}" \
+#       MarkDuplicates \
+#       --INPUT ${sep=' --INPUT ' input_bams} \
+#       --OUTPUT ${output_bam_basename}.bam \
+#       --METRICS_FILE ${metrics_filename} \
+#       --VALIDATION_STRINGENCY SILENT \
+#       --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500 \
+#       --ASSUME_SORT_ORDER "queryname" \
+#       --CREATE_MD5_FILE true
+#   }
+#   runtime {
+#     preemptible: preemptible_tries
+#     docker: docker_image
+#     memory: mem_size
+#     #disks: "local-disk " + disk_size + " HDD"
+#   }
+#   output {
+#     File output_bam = "${output_bam_basename}.bam"
+#     File duplicate_metrics = "${metrics_filename}"
+#   }
+# }
 
 # Generate sets of intervals for scatter-gathering over chromosomes
 task CreateSequenceGroupingTSV {
@@ -696,5 +701,4 @@ task GatherBamFiles {
     File output_bam_index = "${output_bam_basename}.bai"
     File output_bam_md5 = "${output_bam_basename}.bam.md5"
   }
-}
 }
