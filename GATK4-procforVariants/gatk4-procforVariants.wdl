@@ -71,6 +71,16 @@ workflow PreProcForVariants_GATK4 {
   Int preemptible_tries
   Int agg_preemptible_tries
 
+  # Get the version of BWA to include in the PG record in the header of the BAM produced
+  # by MergeBamAlignment.
+  call GetBwaVersion {
+    input:
+      docker_image = gotc_docker,
+      bwa_path = gotc_path,
+      preemptible_tries = preemptible_tries
+  }
+
+  String BWAVersion = GetBwaVersion.version
  
   scatter (job in batchInfo){
     String sampleName = job.sampleName
@@ -81,18 +91,7 @@ workflow PreProcForVariants_GATK4 {
 
     String base_file_name = sampleName + "." + ref_name
   # Get the bed file for this dataset
-    #Array[String] sequenceIntervals = read_lines(bedLocation)
-
-    Array[Array[String]] sequenceIntervals = read_tsv(bedLocation)
-
-  # Get the version of BWA to include in the PG record in the header of the BAM produced
-  # by MergeBamAlignment.
-  call GetBwaVersion {
-    input:
-      docker_image = gotc_docker,
-      bwa_path = gotc_path,
-      preemptible_tries = preemptible_tries
-  }
+  # Array[Array[String]] sequenceIntervals = read_tsv(bedLocation)
 
   # Map reads to reference
   call SamToFastqAndBwaMem {
@@ -116,7 +115,7 @@ workflow PreProcForVariants_GATK4 {
     input:
       unmapped_bam = bamLocation,
       bwa_commandline = bwa_commandline,
-      bwa_version = GetBwaVersion.version,
+      bwa_version = BWAVersion,
       aligned_bam = SamToFastqAndBwaMem.output_bam,
       output_bam_basename = bam_basename + ".aligned.unsorted",
       ref_fasta = ref_fasta,
@@ -201,6 +200,8 @@ workflow PreProcForVariants_GATK4 {
     #File duplication_metrics = MarkDuplicates.duplicate_metrics
     Array[File] bqsr_report = BaseRecalibrator.recalibration_report
     Array[File] analysis_ready_bam = ApplyBQSR.recalibrated_bam 
+    Array[File] analysis_ready_bai = ApplyBQSR.recalibrated_bai
+    Array[File] analysis_ready_bam_md5 = ApplyBQSR.recalibrated_bam_md5
     # Add in data provenance outputs
   }
 }
@@ -519,6 +520,8 @@ task ApplyBQSR {
       ApplyBQSR \
       -R ${ref_fasta} \
       -I ${input_bam} \
+      -OBI ${output_bam_basename}.bai \
+      -OBM ${output_bam_basename}.bam.md5 \
       -O ${output_bam_basename}.bam \
       -L ${baserecal_bed_file} \
       -bqsr ${recalibration_report} \
@@ -535,6 +538,8 @@ task ApplyBQSR {
   }
   output {
     File recalibrated_bam = "${output_bam_basename}.bam"
+    File recalibrated_bai = "${output_bam_basename}.bai"
+    File recalibrated_bam_md5 = "${output_bam_basename}.bam.md5"
   }
 }
 
