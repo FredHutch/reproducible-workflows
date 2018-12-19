@@ -1,5 +1,6 @@
 {
   "denovoGeneLevelMetagenomicsCAGs.manifest": "s3://fh-div-adm-scicomp-cromwell-tests/cromwell-tests/denovo-gene-level-metagenomics-cags/inputs/manifest.txt",
+  "denovoGeneLevelMetagenomicsCAGs.metadata_table": "s3://fh-div-adm-scicomp-cromwell-tests/cromwell-tests/denovo-gene-level-metagenomics-cags/inputs/manifest.txt",
   "denovoGeneLevelMetagenomicsCAGs.tax_db": "s3://fh-div-adm-scicomp-cromwell-tests/cromwell-tests/denovo-gene-level-metagenomics-cags/inputs/ncbi_ref_proteins.dmnd",
   "denovoGeneLevelMetagenomicsCAGs.taxonmap": "s3://fh-div-adm-scicomp-cromwell-tests/cromwell-tests/denovo-gene-level-metagenomics-cags/inputs/ncbi_ref_proteins.prot.accession2taxid.gz",
   "denovoGeneLevelMetagenomicsCAGs.taxonnodes": "s3://fh-div-adm-scicomp-cromwell-tests/cromwell-tests/denovo-gene-level-metagenomics-cags/inputs/nodes.dmp"

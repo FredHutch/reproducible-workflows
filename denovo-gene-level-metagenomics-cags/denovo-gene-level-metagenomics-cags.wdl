@@ -4,6 +4,7 @@ workflow denovoGeneLevelMetagenomicsCAGs {
   File tax_db
   File taxonmap
   File taxonnodes
+  File metadata_table
   Array[Array[String]] inputSamples = read_tsv(manifest)
   String cags_min_samples = "2"
   String cags_normalization = "sum"
@@ -55,12 +56,22 @@ workflow denovoGeneLevelMetagenomicsCAGs {
       cags_max_dist=cags_max_dist
   }
 
+  call MakeExperimentCollection {
+    input: 
+      cags_json=MakeCAGs.cags_json,
+      filtered_gene_abundances=FilterFAMLI.abundance,
+      metadata_table=metadata_table,
+      taxonomic_classification_tsv=AnnotateProteinsTax.tax_annot,
+      integrated_assembly=IntegrateAssemblies.integrated_assembly_hdf5
+  }
+
   output {
     File integrated_assembly_hdf5=IntegrateAssemblies.integrated_assembly_hdf5
     File integrated_assembly_dmnd=IntegrateAssemblies.integrated_assembly_dmnd
     Array[File] famli_abundance=FilterFAMLI.abundance
     File integrated_assembly_tax=AnnotateProteinsTax.tax_annot
     File cags_json=MakeCAGs.cags_json
+    File experiment_collection=MakeExperimentCollection.experiment_collection
   }
 
 }
@@ -278,8 +289,6 @@ json.dump(dict([
   for f in '${sep=' ' filtered_gene_abundances}'.split(' ')
 ]), open('sample_sheet.json', 'wt'))"
 
-    cat sample_sheet.json; 
-
     for f in ${sep=" " filtered_gene_abundances}; do
       echo $f;
       gunzip -c $f
@@ -296,6 +305,55 @@ json.dump(dict([
   }
   output {
     File cags_json = "output.cags.json.gz"
+  }
+
+}
+
+task MakeExperimentCollection {
+
+  Array[File] filtered_gene_abundances
+  File metadata_table
+  File taxonomic_classification_tsv
+  File integrated_assembly
+  File cags_json
+
+  runtime {
+    docker: "quay.io/fhcrc-microbiome/experiment-collection@sha256:ae5b698aafe6cc6794619198efbb4ce8ca48d8534f9f776b5f6a7198cd055bf9"
+    memory: "60G"
+    cpu: "16"
+  }
+
+  command {
+    set -e;
+
+    python -c "
+import json;
+json.dump(dict([
+  (f, f)
+  for f in '${sep=' ' filtered_gene_abundances}'.split(' ')
+]), open('sample_sheet.json', 'wt'))"
+
+    make-experiment-collection.py \
+    --output-hdf5 \
+    experiment_collection.hdf5 \
+    --output-logs \
+    experiment_collection.logs \
+    --abundance-sample-sheet \
+    sample_sheet.json \
+    --metadata-table \
+    "${metadata_table}" \
+    --taxonomic-classification-tsv \
+    "${taxonomic_classification_tsv}" \
+    --integrated-assembly \
+    "${integrated_assembly}" \
+    --cags-json \
+    "${cags_json}" \
+    --temp-folder \
+    ./
+  }
+  output {
+    File experiment_collection = "experiment_collection.hdf5"
+    File experiment_collection_logs = "experiment_collection.logs"
   }
 
 }
