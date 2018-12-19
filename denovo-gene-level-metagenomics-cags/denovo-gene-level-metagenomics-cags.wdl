@@ -5,11 +5,15 @@ workflow denovoGeneLevelMetagenomicsCAGs {
   File taxonmap
   File taxonnodes
   Array[Array[String]] inputSamples = read_tsv(manifest)
+  String cags_min_samples = "2"
+  String cags_normalization = "sum"
+  String cags_max_dist = "0.2"
 
   scatter (sample in inputSamples) {
     call deNovoAssembly { 
-      input: input_file=sample[1], 
-             sample_name=sample[0]
+      input: 
+        input_file=sample[1], 
+        sample_name=sample[0]
     }
 
     call Annotation { 
@@ -32,9 +36,10 @@ workflow denovoGeneLevelMetagenomicsCAGs {
 
   scatter (sample in inputSamples) {
     call AlignDiamond { 
-      input: input_file=sample[1], 
-             sample_name=sample[0],
-             ref=IntegrateAssemblies.integrated_assembly_dmnd
+      input: 
+        input_file=sample[1], 
+        sample_name=sample[0],
+        ref=IntegrateAssemblies.integrated_assembly_dmnd
     }
 
     call FilterFAMLI { 
@@ -42,11 +47,20 @@ workflow denovoGeneLevelMetagenomicsCAGs {
     }
   }
 
+  call MakeCAGs {
+    input: 
+      filtered_gene_abundances=FilterFAMLI.abundance,
+      cags_min_samples=cags_min_samples,
+      cags_normalization=cags_normalization,
+      cags_max_dist=cags_max_dist
+  }
+
   output {
     File integrated_assembly_hdf5=IntegrateAssemblies.integrated_assembly_hdf5
     File integrated_assembly_dmnd=IntegrateAssemblies.integrated_assembly_dmnd
     Array[File] famli_abundance=FilterFAMLI.abundance
     File integrated_assembly_tax=AnnotateProteinsTax.tax_annot
+    File cags_json=MakeCAGs.cags_json
   }
 
 }
@@ -240,5 +254,49 @@ task FilterFAMLI {
   output {
     File abundance = "${output_fp}.gz"
   }
+}
+
+task MakeCAGs {
+  Array[File] filtered_gene_abundances
+  String cags_min_samples = "2"
+  String cags_normalization = "sum"
+  String cags_max_dist = "0.2"
+
+  runtime {
+    docker: "quay.io/fhcrc-microbiome/find-cags@sha256:bfde01058cb80e970818853a8d4f64eb3184138e84671fc12819f348a38deedf"
+    memory: "120G"
+    cpu: "16"
+  }
+
+  command {
+    set -e;
+
+    python -c "
+import json;
+json.dump(dict([
+  (f, f)
+  for f in '${sep=' ' filtered_gene_abundances}'.split(' ')
+]), open('sample_sheet.json', 'wt'))"
+
+    cat sample_sheet.json; 
+
+    for f in ${sep=" " filtered_gene_abundances}; do
+      echo $f;
+      gunzip -c $f
+    done
+
+    find-cags.py \
+      --sample-sheet sample_sheet.json \
+      --output-prefix output \
+      --output-folder ./ \
+      --normalization ${cags_normalization} \
+      --max-dist ${cags_max_dist} \
+      --min-samples ${cags_min_samples}
+
+  }
+  output {
+    File cags_json = "output.cags.json.gz"
+  }
+
 }
 
