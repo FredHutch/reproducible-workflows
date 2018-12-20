@@ -117,7 +117,7 @@ workflow PreProcForVariants_GATK4 {
       bwa_commandline = bwa_commandline,
       bwa_version = BWAVersion,
       aligned_bam = SamToFastqAndBwaMem.output_bam,
-      output_bam_basename = bam_basename + ".aligned.unsorted",
+      output_bam_basename = bam_basename + ".aligned.sorted",
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       ref_dict = ref_dict,
@@ -127,40 +127,14 @@ workflow PreProcForVariants_GATK4 {
       preemptible_tries = preemptible_tries,
       compression_level = compression_level
   }
-  # mark duplicates
-  # call MarkDuplicates {
-  #   input:
-  #     input_bams = MergeBamAlignment.output_bam,
-  #     output_bam_basename = base_file_name + ".aligned.unsorted.duplicates_marked",
-  #     metrics_filename = base_file_name + ".duplicate_metrics",
-  #     docker_image = gatk_docker,
-  #     gatk_path = gatk_path,
-  #     disk_size = agg_large_disk,
-  #     compression_level = compression_level,
-  #     preemptible_tries = agg_preemptible_tries
-  # }
-
-  # Sort aggregated BAM file and fix tags
-  call SortAndFixTags {
-    input:
-      input_bam = MergeBamAlignment.output_bam,
-      output_bam_basename = base_file_name + ".aligned.sorted",
-      ref_dict = ref_dict,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      docker_image = gatk_docker,
-      gatk_path = gatk_path,
-      disk_size = agg_large_disk,
-      preemptible_tries = 0,
-      compression_level = compression_level
-  }
+ 
 
 
 # Generate the recalibration model by interval
     call BaseRecalibrator {
       input:
-        input_bam = SortAndFixTags.output_bam,
-        input_bam_index = SortAndFixTags.output_bam_index,
+        input_bam = MergeBamAlignment.output_bam,
+        input_bam_index = MergeBamAlignment.output_bai,
         recalibration_report_filename = base_file_name + ".recal_data.csv",
         baserecal_bed_file = bedLocation,
         dbSNP_vcf = dbSNP_vcf,
@@ -180,8 +154,8 @@ workflow PreProcForVariants_GATK4 {
     # Apply the recalibration model by interval
     call ApplyBQSR {
       input:
-        input_bam = SortAndFixTags.output_bam,
-        input_bam_index = SortAndFixTags.output_bam_index,
+        input_bam = MergeBamAlignment.output_bam,
+        input_bam_index = MergeBamAlignment.output_bai,
         output_bam_basename = base_file_name + ".aligned.recalibrated", 
         recalibration_report = BaseRecalibrator.recalibration_report,
         baserecal_bed_file = bedLocation,
@@ -327,7 +301,9 @@ task MergeBamAlignment {
       --OUTPUT ${output_bam_basename}.bam \
       --REFERENCE_SEQUENCE ${ref_fasta} \
       --PAIRED_RUN true \
-      --SORT_ORDER "unsorted" \
+      --SORT_ORDER "coordinate" \
+      --CREATE_INDEX true \
+      --CREATE_MD5_FILE true \
       --IS_BISULFITE_SEQUENCE false \
       --ALIGNED_READS_ONLY false \
       --CLIP_ADAPTERS false \
@@ -351,100 +327,14 @@ task MergeBamAlignment {
   }
   output {
     File output_bam = "${output_bam_basename}.bam"
-  }
-}
-
-# Sort BAM file by coordinate order and fix tag values for NM and UQ
-task SortAndFixTags {
-  File input_bam
-  String output_bam_basename
-  File ref_dict
-  File ref_fasta
-  File ref_fasta_index
-
-  Int compression_level
-  Int preemptible_tries
-  Int disk_size
-  String mem_size
-
-  String docker_image
-  String gatk_path
-  String java_opt_sort
-  String java_opt_fix
-
-  command <<<
-    set -o pipefail
-
-    ${gatk_path} --java-options "-Dsamjdk.compression_level=${compression_level} ${java_opt_sort}" \
-      SortSam \
-      --INPUT ${input_bam} \
-      --OUTPUT /cromwell_root/atempfile \
-      --SORT_ORDER "coordinate" \
-      --CREATE_INDEX false \
-      --CREATE_MD5_FILE false
-   ${gatk_path} --java-options "-Dsamjdk.compression_level=${compression_level} ${java_opt_fix}" \
-      SetNmAndUqTags \
-      --INPUT /cromwell_root/atempfile \
-      --OUTPUT ${output_bam_basename}.bam \
-      --CREATE_INDEX true \
-      --CREATE_MD5_FILE true \
-      --REFERENCE_SEQUENCE ${ref_fasta}
-  rm /cromwell_root/atempfile
-  >>>
-
-  runtime {
-    preemptible: preemptible_tries
-    docker: docker_image
-    memory: mem_size
-    #disks: "local-disk " + disk_size + " HDD"
-  }
-  output {
-    File output_bam = "${output_bam_basename}.bam"
-    File output_bam_index = "${output_bam_basename}.bai"
+    File output_bai = "${output_bam_basename}.bai"
     File output_bam_md5 = "${output_bam_basename}.bam.md5"
   }
 }
 
-# # Mark duplicate reads to avoid counting non-independent observations
-# task MarkDuplicates {
-#   Array[File] input_bams
-#   String output_bam_basename
-#   String metrics_filename
 
-#   Int compression_level
-#   Int preemptible_tries
-#   Int disk_size
-#   String mem_size
 
-#   String docker_image
-#   String gatk_path
-#   String java_opt
 
-#  # Task is assuming query-sorted input so that the Secondary and Supplementary reads get marked correctly.
-#  # This works because the output of BWA is query-grouped and therefore, so is the output of MergeBamAlignment.
-#  # While query-grouped isn't actually query-sorted, it's good enough for MarkDuplicates with ASSUME_SORT_ORDER="queryname"
-#   command {
-#     ${gatk_path} --java-options "-Dsamjdk.compression_level=${compression_level} ${java_opt}" \
-#       MarkDuplicates \
-#       --INPUT ${sep=' --INPUT ' input_bams} \
-#       --OUTPUT ${output_bam_basename}.bam \
-#       --METRICS_FILE ${metrics_filename} \
-#       --VALIDATION_STRINGENCY SILENT \
-#       --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500 \
-#       --ASSUME_SORT_ORDER "queryname" \
-#       --CREATE_MD5_FILE true
-#   }
-#   runtime {
-#     preemptible: preemptible_tries
-#     docker: docker_image
-#     memory: mem_size
-#     #disks: "local-disk " + disk_size + " HDD"
-#   }
-#   output {
-#     File output_bam = "${output_bam_basename}.bam"
-#     File duplicate_metrics = "${metrics_filename}"
-#   }
-# }
 
 
 # Generate Base Quality Score Recalibration (BQSR) model
@@ -516,20 +406,19 @@ task ApplyBQSR {
   String java_opt
 
   command {
-    gunzip ${ref_fasta}
-    gunzipped_ref_fasta=$(echo ${ref_fasta} | sed "s/\.gz//")
+        gunzip ${ref_fasta}
+        gunzipped_ref_fasta=$(echo ${ref_fasta} | sed "s/\.gz//")
 
     ${gatk_path} --java-options "${java_opt}" \
       ApplyBQSR \
       -R $gunzipped_ref_fasta \
       -I ${input_bam} \
-      -OBI true \
-      -OBM true \
       -O ${output_bam_basename}.bam \
       -L ${baserecal_bed_file} \
       -bqsr ${recalibration_report} \
       --static-quantized-quals 10 --static-quantized-quals 20 --static-quantized-quals 30 \
       --add-output-sam-program-record \
+      --create-output-bam-index \
       --create-output-bam-md5 \
       --use-original-qualities
   }
