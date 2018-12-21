@@ -159,10 +159,10 @@ outputs:
     outputSource: annovar/annovar_results
 
 steps:
-  bwa_stderr:
-    run: bwa-version.cwl
-    in: []
-    out: [bwa_version_stderr]
+#  bwa_stderr:
+#    run: bwa-version.cwl
+#    in: []
+#    out: [bwa_version_stderr]
   bwa:
     run: bwa-pe.cwl
     in:
@@ -179,25 +179,25 @@ steps:
     in:
       tmpoutput: bwa/tmpsam
     out: [sam]
-  samtools_stderr:
-    run: samtools-version.cwl# Need this one
-    in: []
-    out: [samtools_version_stderr]
-  samtools-view:
-    run: samtools-view.cwl# Need this one
-    in:
-      bs: bs_option
-      bam: samtools-view_result_file
-      sam: trim/sam
-    out: [samtools-view_bam]
-  samtools-sort:
-    run: samtools-sort.cwl
-    in:
-      bam: samtools-view/samtools-view_bam
-      sortbam: samtools-sort_result_file
-    out: [samtools-sort_sortbam]
+#  samtools_stderr:
+#    run: samtools-version.cwl# Need this one
+#    in: []
+#    out: [samtools_version_stderr]
+#  samtools-view:
+#    run: samtools-view.cwl# Need this one
+#    in:
+#      bs: bs_option
+#      bam: samtools-view_result_file
+#      sam: trim/sam
+#    out: [samtools-view_bam]
+#  samtools-sort:
+#    run: samtools-sort.cwl
+#    in:
+#      bam: samtools-view/samtools-view_bam
+#      sortbam: samtools-sort_result_file
+#    out: [samtools-sort_sortbam]
   samtools-index:
-    run: samtools-index.cwl
+    run: samtools-index_bam.cwl
     in:
       sortbam: samtools-sort/samtools-sort_sortbam
       indexbam: samtools-index_result_file
