@@ -1,0 +1,5 @@
+# output_filename: _OUTPUT_FILENAME_
+input_bam:
+  class: File
+  path: _INPUT_BAM_
+nthreads: _NTHREADS_
