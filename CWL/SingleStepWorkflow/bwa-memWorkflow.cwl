@@ -3,7 +3,9 @@ class: Workflow
 
 requirements:
   - class: InlineJavascriptRequirement
-
+  - class: StepInputExpressionRequirement
+  - class: SubworkflowFeatureRequirement
+  - class: MultipleInputFeatureRequirement
 inputs:
 
   # BWA parameters
