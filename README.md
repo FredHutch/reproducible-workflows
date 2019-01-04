@@ -40,7 +40,7 @@ and inputs JSON, and is determined by the developer to be ready for use.  These 
 
 #### Validated Workflows
 
-  * Coming soon...
+  * WDL / align-proteins-diamond: Aligns a set of proteins using DIAMOND
 
 #### Under Development Workflows
 
