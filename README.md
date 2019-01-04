@@ -41,6 +41,7 @@ and inputs JSON, and is determined by the developer to be ready for use.  These 
 #### Validated Workflows
 
   * WDL / align-proteins-diamond: Aligns a set of proteins using DIAMOND
+  * WDL / denovo-gene-level-metagenomics-cags: Assemble a set of metagenomes, quantify genes, and make CAGs
 
 #### Under Development Workflows
 
