@@ -1,0 +1,2 @@
+/Users/sminot/Documents/GitHub/reproducible-workflows/WDL/align-proteins-diamond/local_inputs/enterobacteria_phage_ID1.faa
+/Users/sminot/Documents/GitHub/reproducible-workflows/WDL/align-proteins-diamond/local_inputs/enterobacteria_phage_S13.faa

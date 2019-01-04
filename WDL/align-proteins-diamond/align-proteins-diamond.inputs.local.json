@@ -1,0 +1,5 @@
+{
+  "alignProteinsDiamond.reference": "/Users/sminot/Documents/GitHub/reproducible-workflows/WDL/align-proteins-diamond/local_inputs/ncbi_ref_proteins.faa",
+  "alignProteinsDiamond.query_list": "/Users/sminot/Documents/GitHub/reproducible-workflows/WDL/align-proteins-diamond/local_inputs/sample_sheet.txt"
+}
+
