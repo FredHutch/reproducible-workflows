@@ -1,0 +1,4 @@
+{
+  "alignProteinsDiamond.reference": "s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/align-proteins-diamond/ncbi_ref_proteins.faa",
+  "alignProteinsDiamond.query_list": "s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/align-proteins-diamond/sample_sheet.txt"
+}
