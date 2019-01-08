@@ -6,6 +6,7 @@ hints:
 baseCommand: bwa
 requirements:
   - class: InlineJavascriptRequirement
+  - class: InitialWorkDirRequirement
 inputs:
   mem:
     type: boolean
