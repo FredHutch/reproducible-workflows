@@ -9,4 +9,7 @@ task myTask {
     output {
         String out = read_string(stdout())
     }
+    runtime {
+        docker: "ubuntu:latest"
+    }
 }
