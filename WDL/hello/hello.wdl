@@ -10,4 +10,7 @@ task myTask {
     output {
         File response = stdout()
     }
+    runtime {
+        docker: "ubuntu:latest"
+    }
 }
