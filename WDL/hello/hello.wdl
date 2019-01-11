@@ -3,7 +3,7 @@ workflow myWorkflow {
 }
 
 task myTask {
-    string name
+    String name
     command {
         echo "hello ${name}"
     }
