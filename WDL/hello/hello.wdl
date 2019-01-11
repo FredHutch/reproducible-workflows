@@ -3,10 +3,11 @@ workflow myWorkflow {
 }
 
 task myTask {
+    string name
     command {
-        echo "hello world"
+        echo "hello ${name}"
     }
     output {
-        String out = read_string(stdout())
+        File response = stdout()
     }
 }
