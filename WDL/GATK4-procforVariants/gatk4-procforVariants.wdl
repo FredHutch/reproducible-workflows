@@ -523,15 +523,14 @@ task ApplyBQSR {
       ApplyBQSR \
       -R $gunzipped_ref_fasta \
       -I ${input_bam} \
-      -OBI true \
-      -OBM true \
       -O ${output_bam_basename}.bam \
       -L ${baserecal_bed_file} \
       -bqsr ${recalibration_report} \
       --static-quantized-quals 10 --static-quantized-quals 20 --static-quantized-quals 30 \
-      --add-output-sam-program-record \
-      --create-output-bam-md5 \
-      --use-original-qualities
+      --preserve-qscores-less-than 6 \
+      --create-output-bam-index true \
+      --create-output-bam-md5 true \
+      --verbosity DEBUG
   }
   runtime {
     preemptible: preemptible_tries
