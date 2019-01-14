@@ -48,6 +48,7 @@ scatter (job in batchInfo){
       ref_sa = ref_sa
   }
 }
+}
 
 # TASK DEFINITIONS
 
