@@ -9,7 +9,6 @@
   "Panel_BWA_GATK4_Samtools_Var_Annotate.ref_ann": "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.gz.ann",
   "Panel_BWA_GATK4_Samtools_Var_Annotate.ref_fasta_index": "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.fai",
   "Panel_BWA_GATK4_Samtools_Var_Annotate.ref_fasta": "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta",
-
   "Panel_BWA_GATK4_Samtools_Var_Annotate.ref_dict": "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.dict",
   "Panel_BWA_GATK4_Samtools_Var_Annotate.ref_alt": "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.alt",
   "Panel_BWA_GATK4_Samtools_Var_Annotate.ref_bwt": "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.gz.bwt",
