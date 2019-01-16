@@ -55,10 +55,17 @@ scatter (job in batchInfo){
   String bam_basename = basename(bamLocation, ".unmapped.bam")
   String base_file_name = sampleName + "." + ref_name
 
-  # convert unmapped bam to fastq, Map reads to reference
-  call SamToFastqAndBwaMem {
+  # convert unmapped bam to fastq
+  call SamToFastq {
     input:
       input_bam = bamLocation,
+      base_file_name = base_file_name
+  }
+
+    #  Map reads to reference
+  call BwaMem {
+    input:
+      input_fastq = SamToFastq.output_fastq,
       base_file_name = base_file_name,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
@@ -75,7 +82,7 @@ scatter (job in batchInfo){
   call MergeBamAlignment {
     input:
       unmapped_bam = bamLocation,
-      aligned_bam = SamToFastqAndBwaMem.output_bam,
+      aligned_bam = BwaMem.output_bam,
       base_file_name = base_file_name,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
@@ -180,9 +187,35 @@ scatter (job in batchInfo){
 
 # TASK DEFINITIONS
 
-# Read unmapped BAM, convert to FASTQ, align to genome
-task SamToFastqAndBwaMem {
+# Read unmapped BAM, convert to FASTQ
+task SamToFastq {
   File input_bam
+  String base_file_name
+
+  command {
+    set -e
+    set -o pipefail
+
+    java -Dsamjdk.compression_level=5 -Xms3000m -jar picard.jar \
+      SamToFastq \
+			INPUT=${input_bam} \
+			FASTQ=${base_file_name}.fastq \
+			INTERLEAVE=true \
+			NON_PF=true 
+  }
+  runtime {
+    docker: "biocontainers/picard:v2.3.0_cv3"
+    memory: "14 GB"
+    cpu: "16"
+  }
+  output {
+    File output_fastq = "${base_file_name}.fastq"
+  }
+}
+
+# align to genome
+task BwaMem {
+  File input_fastq
   String base_file_name
   File ref_fasta
   File ref_fasta_index
@@ -200,25 +233,17 @@ task SamToFastqAndBwaMem {
 
     ls /cromwell_root/fh-ctr-public-reference-data/genome_data/human/hg38/
     
-    java -Dsamjdk.compression_level=5 -Xms3000m -jar /usr/gitc/picard.jar \
-      SamToFastq \
-			INPUT=${input_bam} \
-			FASTQ=${base_file_name}.fastq \
-			INTERLEAVE=true \
-			NON_PF=true 
-
-    /usr/gitc/bwa mem \
+    bwa mem \
       -p -v 3 -t 16 -M \
-      ${ref_fasta} ${base_file_name}.fastq | samtools view -1 -bS > ${base_file_name}.aligned.bam 
+      ${ref_fasta} ${input_fastq} | samtools view -1 -bS > ${base_file_name}.aligned.bam 
 
   }
   runtime {
-    docker: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
+    docker: "biocontainers/bwa:v0.7.15_cv3"
     memory: "14 GB"
     cpu: "16"
   }
   output {
-    File output_fastq = "${base_file_name}.fastq"
     File output_bam = "${base_file_name}.aligned.bam"
     File output_bwa_error = "${base_file_name}.bwa.stderr.log"
   }
