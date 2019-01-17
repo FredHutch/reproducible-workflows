@@ -56,17 +56,49 @@ scatter (job in batchInfo){
   String bam_basename = basename(bamLocation, ".unmapped.bam")
   String base_file_name = sampleName + "." + ref_name
 
-  # convert unmapped bam to fastq
-  call SamToFastq {
+
+
+#  # convert unmapped bam to fastq
+#   call SamToFastq {
+#     input:
+#       input_bam = bamLocation,
+#       base_file_name = base_file_name
+#   }
+
+#     #  Map reads to reference
+#   call BwaMem {
+#     input:
+#       input_fastq = SamToFastq.output_fastq,
+#       base_file_name = base_file_name,
+#       ref_fasta = ref_fasta,
+#       ref_fasta_index = ref_fasta_index,
+#       ref_dict = ref_dict,
+#       ref_alt = ref_alt,
+#       ref_amb = ref_amb,
+#       ref_ann = ref_ann,
+#       ref_bwt = ref_bwt,
+#       ref_pac = ref_pac,
+#       ref_sa = ref_sa
+#   }
+
+#   # Merge original uBAM and BWA-aligned BAM
+#   call MergeBamAlignment {
+#     input:
+#       unmapped_bam = bamLocation,
+#       aligned_bam = BwaMem.output_bam,
+#       base_file_name = base_file_name,
+#       ref_fasta = ref_fasta,
+#       ref_fasta_index = ref_fasta_index,
+#       ref_dict = ref_dict
+#   }
+
+
+
+
+ # convert unmapped bam to fastq, Map reads to reference
+  call SamToFastqAndBwaMem {
     input:
       input_bam = bamLocation,
-      base_file_name = base_file_name
-  }
-
-    #  Map reads to reference
-  call BwaMem {
-    input:
-      input_fastq = SamToFastq.output_fastq,
       base_file_name = base_file_name,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
@@ -83,7 +115,7 @@ scatter (job in batchInfo){
   call MergeBamAlignment {
     input:
       unmapped_bam = bamLocation,
-      aligned_bam = BwaMem.output_bam,
+      aligned_bam = SamToFastqAndBwaMem.output_bam,
       base_file_name = base_file_name,
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
@@ -189,35 +221,72 @@ scatter (job in batchInfo){
 
 # TASK DEFINITIONS
 
-# Read unmapped BAM, convert to FASTQ
-task SamToFastq {
+
+# # Read unmapped BAM, convert to FASTQ
+# task SamToFastq {
+#   File input_bam
+#   String base_file_name
+
+#   command {
+#     set -e
+#     set -o pipefail
+
+#     java -Dsamjdk.compression_level=5 -Xms3000m -jar /opt/conda/share/picard-2.3.0-0/picard.jar \
+#       SamToFastq \
+# 			INPUT=${input_bam} \
+# 			FASTQ=${base_file_name}.fastq \
+# 			INTERLEAVE=true \
+# 			NON_PF=true 
+#   }
+#   runtime {
+#     docker: "biocontainers/picard:v2.3.0_cv3"
+#     memory: "14 GB"
+#     cpu: "1"
+#   }
+#   output {
+#     File output_fastq = "${base_file_name}.fastq"
+#   }
+# }
+
+# # align to genome
+# task BwaMem {
+#   File input_fastq
+#   String base_file_name
+#   File ref_fasta
+#   File ref_fasta_index
+#   File ref_dict
+#   File? ref_alt
+#   File ref_amb
+#   File ref_ann
+#   File ref_bwt
+#   File ref_pac
+#   File ref_sa
+
+#   command {
+#     set -e
+#     set -o pipefail
+
+#     ls /cromwell_root/fh-ctr-public-reference-data/genome_data/human/hg38/
+    
+#     bwa mem \
+#       -p -v 3 -t 16 -M \
+#       ${ref_fasta} ${input_fastq} | samtools view -1 -bS > ${base_file_name}.aligned.bam 
+
+#   }
+#   runtime {
+#     docker: "biocontainers/bwa:v0.7.15_cv3"
+#     memory: "14 GB"
+#     cpu: "16"
+#   }
+#   output {
+#     File output_bam = "${base_file_name}.aligned.bam"
+#     File output_bwa_error = "${base_file_name}.bwa.stderr.log"
+#   }
+# }
+
+# Read unmapped BAM, convert to FASTQ, align to genome
+task SamToFastqAndBwaMem {
   File input_bam
-  String base_file_name
-
-  command {
-    set -e
-    set -o pipefail
-
-    java -Dsamjdk.compression_level=5 -Xms3000m -jar /opt/conda/share/picard-2.3.0-0/picard.jar \
-      SamToFastq \
-			INPUT=${input_bam} \
-			FASTQ=${base_file_name}.fastq \
-			INTERLEAVE=true \
-			NON_PF=true 
-  }
-  runtime {
-    docker: "biocontainers/picard:v2.3.0_cv3"
-    memory: "14 GB"
-    cpu: "16"
-  }
-  output {
-    File output_fastq = "${base_file_name}.fastq"
-  }
-}
-
-# align to genome
-task BwaMem {
-  File input_fastq
   String base_file_name
   File ref_fasta
   File ref_fasta_index
@@ -235,21 +304,30 @@ task BwaMem {
 
     ls /cromwell_root/fh-ctr-public-reference-data/genome_data/human/hg38/
     
-    bwa mem \
+    java -Dsamjdk.compression_level=5 -Xms3000m -jar /usr/gitc/picard.jar \
+      SamToFastq \
+			INPUT=${input_bam} \
+			FASTQ=${base_file_name}.fastq \
+			INTERLEAVE=true \
+			NON_PF=true 
+
+    /usr/gitc/bwa mem \
       -p -v 3 -t 16 -M \
-      ${ref_fasta} ${input_fastq} | samtools view -1 -bS > ${base_file_name}.aligned.bam 
+      ${ref_fasta} ${base_file_name}.fastq | samtools view -1 -bS > ${base_file_name}.aligned.bam 
 
   }
   runtime {
-    docker: "biocontainers/bwa:v0.7.15_cv3"
-    memory: "14 GB"
+    docker: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
+    memory: "14G"
     cpu: "16"
   }
   output {
+    File output_fastq = "${base_file_name}.fastq"
     File output_bam = "${base_file_name}.aligned.bam"
     File output_bwa_error = "${base_file_name}.bwa.stderr.log"
   }
 }
+
 
 # Merge original input uBAM file with BWA-aligned BAM file
 task MergeBamAlignment {
@@ -285,7 +363,7 @@ task MergeBamAlignment {
   }
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
-    memory: "3500 MB"
+    memory: "8G"
     cpu: "1"
   }
   output {
@@ -307,24 +385,24 @@ task SortAndFixTags {
     /gatk/gatk --java-options "-Dsamjdk.compression_level=$5 -Xms4000m" \
       SortSam \
       --INPUT ${input_bam} \
-      --OUTPUT sorted.sam \
+      --OUTPUT sorted.bam \
       --SORT_ORDER "coordinate" \
       --CREATE_INDEX false \
       --CREATE_MD5_FILE false
 
-   /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms500m" \
+    /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms500m" \
       SetNmAndUqTags \
-      --INPUT sorted.sam \
+      --INPUT sorted.bam \
       --OUTPUT ${base_file_name}.sorted.bam \
       --CREATE_INDEX true \
       --CREATE_MD5_FILE true \
       --REFERENCE_SEQUENCE ${ref_fasta}
-  rm sorted.sam
+
   }
 
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
-    memory: "5000 MB"
+    memory: "8G"
     cpu: "1"
   }
   output {
@@ -363,7 +441,7 @@ task BaseRecalibrator {
   }
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
-    memory: "6 GB"
+    memory: "8G"
     cpu: "1"
   }
   output {
@@ -387,19 +465,16 @@ task ApplyBQSR {
 
     /gatk/gatk --java-options "-Xms3000m" \
       ApplyBQSR \
-      -R ${ref_fasta} \
-      -I ${input_bam} \
-      -OBI true \
-      -OBM true \
-      -O ${base_file_name}.recal.bam \
-      -L ${baserecal_bed_file} \
       -bqsr ${recalibration_report} \
-      --static-quantized-quals 10 --static-quantized-quals 20 --static-quantized-quals 30 \
-      --use-original-qualities
+      -I ${input_bam} \
+      -O ${base_file_name}.recal.bam \
+      -R ${ref_fasta} \
+      -L ${baserecal_bed_file} \
+      --static-quantized-quals 10 --static-quantized-quals 20 --static-quantized-quals 30 
   }
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
-    memory: "3500 MB"
+    memory: "8G"
     cpu: "1"
   }
   output {
@@ -435,7 +510,7 @@ task HaplotypeCaller {
 
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
-    memory: "14 GB"
+    memory: "14G"
     cpu: "1"
   }
 
@@ -475,7 +550,7 @@ task bcftoolsMpileup {
 
   runtime {
     docker: "quay.io/biocontainers/bcftools:1.9--h4da6232_0"
-    memory: "4 GB"
+    memory: "8G"
     cpu: "1"
   }
 
@@ -522,7 +597,7 @@ task annovarConsensus {
 
   runtime {
     docker: "perl:5.28.0"
-    memory: "2 GB"
+    memory: "2G"
     cpu: "1"
   }
 
