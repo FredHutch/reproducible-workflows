@@ -313,7 +313,7 @@ task SamToFastqAndBwaMem {
 
     /usr/gitc/bwa mem \
       -p -v 3 -t 16 -M \
-      ${ref_fasta} ${base_file_name}.fastq | samtools view -1 -bS > ${base_file_name}.aligned.bam 
+      ${ref_fasta} ${base_file_name}.fastq | samtools view -1bS > ${base_file_name}.aligned.bam 
 
   }
   runtime {
@@ -342,24 +342,19 @@ task MergeBamAlignment {
     # set the bash variable needed for the command-line
     /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms3000m" \
       MergeBamAlignment \
-      --VALIDATION_STRINGENCY SILENT \
-      --EXPECTED_ORIENTATIONS FR \
-      --ATTRIBUTES_TO_RETAIN X0 \
-      --ALIGNED_BAM ${aligned_bam} \
-      --UNMAPPED_BAM ${unmapped_bam} \
-      --OUTPUT ${base_file_name}.merged.bam \
-      --REFERENCE_SEQUENCE ${ref_fasta} \
-      --PAIRED_RUN true \
-      --SORT_ORDER "unsorted" \
-      --IS_BISULFITE_SEQUENCE false \
-      --ALIGNED_READS_ONLY false \
-      --CLIP_ADAPTERS false \
-      --MAX_RECORDS_IN_RAM 2000000 \
-      --ADD_MATE_CIGAR true \
-      --MAX_INSERTIONS_OR_DELETIONS -1 \
-      --PRIMARY_ALIGNMENT_STRATEGY MostDistant \
-      --UNMAPPED_READ_STRATEGY COPY_TO_TAG \
-      --ALIGNER_PROPER_PAIR_FLAGS true 
+     --ALIGNED_BAM ${aligned_bam} \
+     --UNMAPPED_BAM ${unmapped_bam} \
+     --OUTPUT ${base_file_name}.merged.bam \
+     --REFERENCE_SEQUENCE ${ref_fasta} \
+     --PAIRED_RUN true \
+     --SORT_ORDER coordinate \
+     --CREATE_INDEX true \
+     --CLIP_ADAPTERS true \
+     --MAX_RECORDS_IN_RAM 2000000 \
+     --MAX_INSERTIONS_OR_DELETIONS -1 \
+     --PRIMARY_ALIGNMENT_STRATEGY MostDistant \
+     --UNMAPPED_READ_STRATEGY COPY_TO_TAG \
+     --ALIGNER_PROPER_PAIR_FLAGS true
   }
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
@@ -368,47 +363,6 @@ task MergeBamAlignment {
   }
   output {
     File output_bam = "${base_file_name}.merged.bam"
-  }
-}
-
-# Sort BAM file by coordinate order and fix tag values for NM and UQ
-task SortAndFixTags {
-  File input_bam
-  String base_file_name
-  File ref_dict
-  File ref_fasta
-  File ref_fasta_index
-
-  command {
-    set -o pipefail
-
-    /gatk/gatk --java-options "-Dsamjdk.compression_level=$5 -Xms4000m" \
-      SortSam \
-      --INPUT ${input_bam} \
-      --OUTPUT sorted.bam \
-      --SORT_ORDER "coordinate" \
-      --CREATE_INDEX false \
-      --CREATE_MD5_FILE false
-
-    /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms500m" \
-      SetNmAndUqTags \
-      --INPUT sorted.bam \
-      --OUTPUT ${base_file_name}.sorted.bam \
-      --CREATE_INDEX true \
-      --CREATE_MD5_FILE true \
-      --REFERENCE_SEQUENCE ${ref_fasta}
-
-  }
-
-  runtime {
-    docker: "broadinstitute/gatk:4.0.4.0"
-    memory: "8G"
-    cpu: "1"
-  }
-  output {
-    File output_bam = "${base_file_name}.sorted.bam"
-    File output_bam_index = "${base_file_name}.sorted.bai"
-    File output_bam_md5 = "${base_file_name}.sorted.bam.md5"
   }
 }
 
@@ -469,8 +423,6 @@ task ApplyBQSR {
       -I ${input_bam} \
       -O ${base_file_name}.recal.bam \
       -R ${ref_fasta} \
-      -L ${baserecal_bed_file} \
-      --static-quantized-quals 10 --static-quantized-quals 20 --static-quantized-quals 30 
   }
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
@@ -503,8 +455,6 @@ task HaplotypeCaller {
       HaplotypeCaller \
       -R ${ref_fasta} \
       -I ${input_bam} \
-      --dbsnp ${dbSNP_vcf}\
-      -L ${bed_file} \
       -O ${base_file_name}.GATK.vcf 
     }
 
@@ -534,7 +484,7 @@ task bcftoolsMpileup {
   File dbSNP_vcf
 
   command {
-    set -e
+    set -eo pipefail
   
     bcftools mpileup \
       -T ${bed_file} \
