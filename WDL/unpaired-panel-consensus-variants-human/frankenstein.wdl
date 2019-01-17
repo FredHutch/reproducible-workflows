@@ -522,9 +522,11 @@ task annovarConsensus {
   String annovar_operation
 
   command {
-  set -e
+  set -eo pipefail
   
+  mkdir annovar
   tar -C annovar/ -xvf ${annovarTAR}
+
   ls annovar/
   ls annovar/humandb/
   
