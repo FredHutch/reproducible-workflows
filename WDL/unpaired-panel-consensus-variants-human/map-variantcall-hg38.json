@@ -22,6 +22,8 @@
     "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
     "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.known_indels.vcf.gz"
   ],
-  "Panel_BWA_GATK4_Samtools_Var_Annotate.annovardb": "s3://fh-ctr-public-reference-data/tool_specific_data/annovar/2019-01-15-hg38-humandb.tar",
-  "Panel_BWA_GATK4_Samtools_Var_Annotate.table_annovar": "s3://fh-ctr-public-reference-data/tool_specific_data/annovar/table_annovar.pl"
+  "##_COMMENT3": "ANNOVAR TOOL AND ASSOCIATED DATABASE FILES",
+  "Panel_BWA_GATK4_Samtools_Var_Annotate.annovarTAR": "s3://fh-ctr-public-reference-data/tool_specific_data/annovar/2018Apr16-ANNOVAR-2019Jan15-hg38humandb.tar",
+  "Panel_BWA_GATK4_Samtools_Var_Annotate.annovar_protocols":"refGene,knownGene,dbnsfp35c,cosmic70,esp6500siv2_all,exac03,exac03nontcga,1000g2015aug,avsnp150,clinvar_20180603",
+  "Panel_BWA_GATK4_Samtools_Var_Annotate.annovar_operation":"g,f,f,f,f,f,f,f,f,f"
 }

@@ -41,10 +41,9 @@ workflow Panel_BWA_GATK4_Samtools_Var_Annotate {
   Array[File] known_indels_sites_VCFs
   Array[File] known_indels_sites_indices
 
-  String annovar_protocols="refGene,knownGene,dbnsfp35c,cosmic70,esp6500siv2_all,exac03,exac03nontcga,1000g2015aug,avsnp150,clinvar_20180603"
-  String annovar_operation="g,f,f,f,f,f,f,f,f,f"
-  File annovardb
-  File table_annovar
+  File annovarTAR
+  String annovar_protocols
+  String annovar_operation
 
 
 scatter (job in batchInfo){
@@ -487,13 +486,13 @@ task bcftoolsMpileup {
     set -eo pipefail
   
     bcftools mpileup \
-      -T ${bed_file} \
-      -Ov \
+      --max-depth 10000 \
+      --max-idepth 10000 \
       --annotate "FORMAT/AD,FORMAT/DP" \
       --fasta-ref ${ref_fasta} \
-      ${input_bam} | \
-    bcftools call -Ov -mv \
-          -T ${bed_file} \
+      --ignore-RG \
+      --no-BAQ \
+      ${input_bam} | bcftools call -Ov -mv \
           -o ${base_file_name}.SAM.vcf
 
     }
@@ -516,33 +515,31 @@ task annovarConsensus {
   File input_SAM_vcf
   String base_file_name
   String ref_name
-  File annovardb
-  String annovar_operation
+  File annovarTAR
   String annovar_protocols
-  File table_annovar
+  String annovar_operation
 
   command {
   set -e
   
-  tar -C annovar/ -xvf ${annovardb}
+  tar -C annovar/ -xvf ${annovarTAR}
   
-  perl ${table_annovar} ${input_GATK_vcf} annovar/ \
+  perl annovar/table_annotate.pl ${input_GATK_vcf} annovar/humandb/ \
     -buildver ${ref_name} \
     -outfile ${base_file_name}.GATK \
     -remove \
     -protocol ${annovar_protocols} \
     -operation ${annovar_operation} \
-    -nastring . -vcfinput -csvout
+    -nastring . -vcfinput
 
-  perl ${table_annovar} ${input_SAM_vcf} annovar/ \
+  perl annovar/table_annotate.pl ${input_SAM_vcf} annovar/humandb/ \
     -buildver ${ref_name} \
     -outfile ${base_file_name}.SAM \
     -remove \
     -protocol ${annovar_protocols} \
     -operation ${annovar_operation} \
-    -nastring . -vcfinput -csvout
+    -nastring . -vcfinput
 
-  rmdir -r annovar 
   }
 
   runtime {
@@ -552,7 +549,9 @@ task annovarConsensus {
   }
 
   output {
-    File output_GATK_annotated = "${base_file_name}.GATK.{ref_name}_multianno.csv"
-    File output_SAM_annotated = "${base_file_name}.SAM.{ref_name}_multianno.csv"
+    File output_GATK_annotated_vcf = "${base_file_name}.GATK.{ref_name}_multianno.vcf"
+    File output_GATK_annotated_table = "${base_file_name}.GATK.{ref_name}_multianno.txt"
+    File output_SAM_annotated_vcf = "${base_file_name}.SAM.{ref_name}_multianno.vcf"
+    File output_SAM_annotated_table = "${base_file_name}.SAM.{ref_name}_multianno.txt"
   }
 }
