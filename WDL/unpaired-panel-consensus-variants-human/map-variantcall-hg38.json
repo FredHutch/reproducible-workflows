@@ -24,6 +24,6 @@
   ],
   "##_COMMENT3": "ANNOVAR TOOL AND ASSOCIATED DATABASE FILES",
   "Panel_BWA_GATK4_Samtools_Var_Annotate.annovarTAR": "s3://fh-ctr-public-reference-data/tool_specific_data/annovar/2018Apr16-ANNOVAR-2019Jan15-hg38humandb.tar",
-  "Panel_BWA_GATK4_Samtools_Var_Annotate.annovar_protocols":"refGene,knownGene,dbnsfp35c,cosmic70,esp6500siv2_all,exac03,exac03nontcga,1000g2015aug,avsnp150,clinvar_20180603",
-  "Panel_BWA_GATK4_Samtools_Var_Annotate.annovar_operation":"g,f,f,f,f,f,f,f,f,f"
+  "Panel_BWA_GATK4_Samtools_Var_Annotate.annovar_protocols": "refGene,knownGene,dbnsfp35c,cosmic70,esp6500siv2_all,exac03,exac03nontcga,1000g2015aug,avsnp150,clinvar_20180603",
+  "Panel_BWA_GATK4_Samtools_Var_Annotate.annovar_operation": "g,f,f,f,f,f,f,f,f,f"
 }

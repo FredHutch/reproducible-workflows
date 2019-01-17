@@ -121,21 +121,21 @@ scatter (job in batchInfo){
       ref_dict = ref_dict
   }
 
-  # Sort aggregated BAM file and fix tags
-  call SortAndFixTags {
-    input:
-      input_bam = MergeBamAlignment.output_bam,
-      base_file_name = base_file_name,
-      ref_dict = ref_dict,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index
-  }
+  # # Sort aggregated BAM file and fix tags
+  # call SortAndFixTags {
+  #   input:
+  #     input_bam = MergeBamAlignment.output_bam,
+  #     base_file_name = base_file_name,
+  #     ref_dict = ref_dict,
+  #     ref_fasta = ref_fasta,
+  #     ref_fasta_index = ref_fasta_index
+  # }
 
   # Generate the recalibration model by interval
   call BaseRecalibrator {
     input:
-      input_bam = SortAndFixTags.output_bam,
-      input_bam_index = SortAndFixTags.output_bam_index,
+      input_bam = MergeBamAlignment.output_bam,
+      input_bam_index = MergeBamAlignment.output_bai,
       base_file_name = base_file_name,
       baserecal_bed_file = bedLocation,
       dbSNP_vcf = dbSNP_vcf,
@@ -151,8 +151,8 @@ scatter (job in batchInfo){
     # Apply the recalibration model by interval
     call ApplyBQSR {
       input:
-        input_bam = SortAndFixTags.output_bam,
-        input_bam_index = SortAndFixTags.output_bam_index,
+        input_bam = MergeBamAlignment.output_bam,
+        input_bam_index = MergeBamAlignment.output_bai,
         base_file_name = base_file_name,
         recalibration_report = BaseRecalibrator.recalibration_report,
         baserecal_bed_file = bedLocation,
@@ -196,10 +196,9 @@ scatter (job in batchInfo){
         input_SAM_vcf = bcftoolsMpileup.output_vcf,
         ref_name = ref_name,
         base_file_name = base_file_name,
-        annovardb = annovardb,
-        annovar_protocols = annovar_protocols,
+        annovarTAR = annovarTAR,
         annovar_operation = annovar_operation,
-        table_annovar = table_annovar
+        annovar_protocols = annovar_protocols
     }
 
   # End scatter 
@@ -212,8 +211,10 @@ scatter (job in batchInfo){
     Array[File] analysis_ready_bam_md5 = ApplyBQSR.recalibrated_bam_md5
     Array[File] GATK_vcf = HaplotypeCaller.output_vcf
     Array[File] SAM_vcf = bcftoolsMpileup.output_vcf
-    Array[File] GATK_annotated = annovarConsensus.output_GATK_annotated
-    Array[File] SAM_annotated = annovarConsensus.output_SAM_annotated
+    Array[File] GATK_annotated_vcf = annovarConsensus.output_GATK_annotated_vcf
+    Array[File] GATK_annotated = annovarConsensus.output_GATK_annotated_table
+    Array[File] SAM_annotated_vcf = annovarConsensus.output_SAM_annotated_vcf
+    Array[File] SAM_annotated = annovarConsensus.output_SAM_annotated_table
   }
 # End workflow
 }
@@ -339,7 +340,7 @@ task MergeBamAlignment {
 
   command {
     # set the bash variable needed for the command-line
-    /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms3000m" \
+    /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms4g" \
       MergeBamAlignment \
      --ALIGNED_BAM ${aligned_bam} \
      --UNMAPPED_BAM ${unmapped_bam} \
@@ -362,6 +363,7 @@ task MergeBamAlignment {
   }
   output {
     File output_bam = "${base_file_name}.merged.bam"
+    File output_bai = "${base_file_name}.merged.bai"
   }
 }
 
@@ -382,7 +384,7 @@ task BaseRecalibrator {
   File ref_fasta_index
 
   command {
-    /gatk/gatk --java-options "-Xms4000m" \
+    /gatk/gatk --java-options "-Xms4g" \
       BaseRecalibrator \
       -R ${ref_fasta} \
       -I ${input_bam} \
@@ -460,7 +462,7 @@ task HaplotypeCaller {
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
     memory: "14G"
-    cpu: "1"
+    cpu: "4"
   }
 
   output {
@@ -499,8 +501,8 @@ task bcftoolsMpileup {
 
   runtime {
     docker: "quay.io/biocontainers/bcftools:1.9--h4da6232_0"
-    memory: "8G"
-    cpu: "1"
+    memory: "14G"
+    cpu: "4"
   }
 
   output {
@@ -523,6 +525,8 @@ task annovarConsensus {
   set -e
   
   tar -C annovar/ -xvf ${annovarTAR}
+  ls annovar/
+  ls annovar/humandb/
   
   perl annovar/table_annotate.pl ${input_GATK_vcf} annovar/humandb/ \
     -buildver ${ref_name} \
@@ -549,9 +553,9 @@ task annovarConsensus {
   }
 
   output {
-    File output_GATK_annotated_vcf = "${base_file_name}.GATK.{ref_name}_multianno.vcf"
-    File output_GATK_annotated_table = "${base_file_name}.GATK.{ref_name}_multianno.txt"
-    File output_SAM_annotated_vcf = "${base_file_name}.SAM.{ref_name}_multianno.vcf"
-    File output_SAM_annotated_table = "${base_file_name}.SAM.{ref_name}_multianno.txt"
+    File output_GATK_annotated_vcf = "${base_file_name}.GATK.${ref_name}_multianno.vcf"
+    File output_GATK_annotated_table = "${base_file_name}.GATK.${ref_name}_multianno.txt"
+    File output_SAM_annotated_vcf = "${base_file_name}.SAM.${ref_name}_multianno.vcf"
+    File output_SAM_annotated_table = "${base_file_name}.SAM.${ref_name}_multianno.txt"
   }
 }
