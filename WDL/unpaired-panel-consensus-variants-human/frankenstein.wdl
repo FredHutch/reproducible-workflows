@@ -11,8 +11,24 @@
 ##
 ##
 ## Output :
-## - TBD
+## - recalibrated bam and it's index and md5
+## - 
+## - GATK vcf
+## - samtools/bcftools vcf
+## - Annovar annotated vcfs and tabular file for each variant caller
 ## 
+
+    Array[File] analysis_ready_bam = ApplyBQSR.recalibrated_bam 
+    Array[File] analysis_ready_bai = ApplyBQSR.recalibrated_bai
+    Array[File] analysis_ready_bam_md5 = ApplyBQSR.recalibrated_bam_md5
+    Array[File] GATK_vcf = HaplotypeCaller.output_vcf
+    Array[File] SAM_vcf = bcftoolsMpileup.output_vcf
+    Array[File] GATK_annotated_vcf = annovarConsensus.output_GATK_annotated_vcf
+    Array[File] GATK_annotated = annovarConsensus.output_GATK_annotated_table
+    Array[File] SAM_annotated_vcf = annovarConsensus.output_SAM_annotated_vcf
+    Array[File] SAM_annotated = annovarConsensus.output_SAM_annotated_table
+
+
 ## Software version requirements (see recommended dockers in inputs JSON)
 ## - GATK 4 or later (see gatk docker)
 ## - Picard (see gotc docker)
@@ -41,10 +57,9 @@ workflow Panel_BWA_GATK4_Samtools_Var_Annotate {
   Array[File] known_indels_sites_VCFs
   Array[File] known_indels_sites_indices
 
-  String annovar_protocols="refGene,knownGene,dbnsfp35c,cosmic70,esp6500siv2_all,exac03,exac03nontcga,1000g2015aug,avsnp150,clinvar_20180603"
-  String annovar_operation="g,f,f,f,f,f,f,f,f,f"
-  File annovardb
-  File table_annovar
+  File annovarTAR
+  String annovar_protocols
+  String annovar_operation
 
 
 scatter (job in batchInfo){
@@ -81,18 +96,6 @@ scatter (job in batchInfo){
 #       ref_sa = ref_sa
 #   }
 
-#   # Merge original uBAM and BWA-aligned BAM
-#   call MergeBamAlignment {
-#     input:
-#       unmapped_bam = bamLocation,
-#       aligned_bam = BwaMem.output_bam,
-#       base_file_name = base_file_name,
-#       ref_fasta = ref_fasta,
-#       ref_fasta_index = ref_fasta_index,
-#       ref_dict = ref_dict
-#   }
-
-
 
 
  # convert unmapped bam to fastq, Map reads to reference
@@ -122,21 +125,11 @@ scatter (job in batchInfo){
       ref_dict = ref_dict
   }
 
-  # Sort aggregated BAM file and fix tags
-  call SortAndFixTags {
-    input:
-      input_bam = MergeBamAlignment.output_bam,
-      base_file_name = base_file_name,
-      ref_dict = ref_dict,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index
-  }
-
   # Generate the recalibration model by interval
   call BaseRecalibrator {
     input:
-      input_bam = SortAndFixTags.output_bam,
-      input_bam_index = SortAndFixTags.output_bam_index,
+      input_bam = MergeBamAlignment.output_bam,
+      input_bam_index = MergeBamAlignment.output_bai,
       base_file_name = base_file_name,
       baserecal_bed_file = bedLocation,
       dbSNP_vcf = dbSNP_vcf,
@@ -152,8 +145,8 @@ scatter (job in batchInfo){
     # Apply the recalibration model by interval
     call ApplyBQSR {
       input:
-        input_bam = SortAndFixTags.output_bam,
-        input_bam_index = SortAndFixTags.output_bam_index,
+        input_bam = MergeBamAlignment.output_bam,
+        input_bam_index = MergeBamAlignment.output_bai,
         base_file_name = base_file_name,
         recalibration_report = BaseRecalibrator.recalibration_report,
         baserecal_bed_file = bedLocation,
@@ -197,24 +190,24 @@ scatter (job in batchInfo){
         input_SAM_vcf = bcftoolsMpileup.output_vcf,
         ref_name = ref_name,
         base_file_name = base_file_name,
-        annovardb = annovardb,
-        annovar_protocols = annovar_protocols,
+        annovarTAR = annovarTAR,
         annovar_operation = annovar_operation,
-        table_annovar = table_annovar
+        annovar_protocols = annovar_protocols
     }
 
   # End scatter 
   }
   # Outputs that will be retained when execution is complete
   output {
-    Array[File] bqsr_report = BaseRecalibrator.recalibration_report
     Array[File] analysis_ready_bam = ApplyBQSR.recalibrated_bam 
     Array[File] analysis_ready_bai = ApplyBQSR.recalibrated_bai
     Array[File] analysis_ready_bam_md5 = ApplyBQSR.recalibrated_bam_md5
     Array[File] GATK_vcf = HaplotypeCaller.output_vcf
     Array[File] SAM_vcf = bcftoolsMpileup.output_vcf
-    Array[File] GATK_annotated = annovarConsensus.output_GATK_annotated
-    Array[File] SAM_annotated = annovarConsensus.output_SAM_annotated
+    Array[File] GATK_annotated_vcf = annovarConsensus.output_GATK_annotated_vcf
+    Array[File] GATK_annotated = annovarConsensus.output_GATK_annotated_table
+    Array[File] SAM_annotated_vcf = annovarConsensus.output_SAM_annotated_vcf
+    Array[File] SAM_annotated = annovarConsensus.output_SAM_annotated_table
   }
 # End workflow
 }
@@ -313,7 +306,7 @@ task SamToFastqAndBwaMem {
 
     /usr/gitc/bwa mem \
       -p -v 3 -t 16 -M \
-      ${ref_fasta} ${base_file_name}.fastq | samtools view -1 -bS > ${base_file_name}.aligned.bam 
+      ${ref_fasta} ${base_file_name}.fastq | samtools view -1bS > ${base_file_name}.aligned.bam 
 
   }
   runtime {
@@ -340,26 +333,21 @@ task MergeBamAlignment {
 
   command {
     # set the bash variable needed for the command-line
-    /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms3000m" \
+    /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms4g" \
       MergeBamAlignment \
-      --VALIDATION_STRINGENCY SILENT \
-      --EXPECTED_ORIENTATIONS FR \
-      --ATTRIBUTES_TO_RETAIN X0 \
-      --ALIGNED_BAM ${aligned_bam} \
-      --UNMAPPED_BAM ${unmapped_bam} \
-      --OUTPUT ${base_file_name}.merged.bam \
-      --REFERENCE_SEQUENCE ${ref_fasta} \
-      --PAIRED_RUN true \
-      --SORT_ORDER "unsorted" \
-      --IS_BISULFITE_SEQUENCE false \
-      --ALIGNED_READS_ONLY false \
-      --CLIP_ADAPTERS false \
-      --MAX_RECORDS_IN_RAM 2000000 \
-      --ADD_MATE_CIGAR true \
-      --MAX_INSERTIONS_OR_DELETIONS -1 \
-      --PRIMARY_ALIGNMENT_STRATEGY MostDistant \
-      --UNMAPPED_READ_STRATEGY COPY_TO_TAG \
-      --ALIGNER_PROPER_PAIR_FLAGS true 
+     --ALIGNED_BAM ${aligned_bam} \
+     --UNMAPPED_BAM ${unmapped_bam} \
+     --OUTPUT ${base_file_name}.merged.bam \
+     --REFERENCE_SEQUENCE ${ref_fasta} \
+     --PAIRED_RUN true \
+     --SORT_ORDER coordinate \
+     --CREATE_INDEX true \
+     --CLIP_ADAPTERS true \
+     --MAX_RECORDS_IN_RAM 2000000 \
+     --MAX_INSERTIONS_OR_DELETIONS -1 \
+     --PRIMARY_ALIGNMENT_STRATEGY MostDistant \
+     --UNMAPPED_READ_STRATEGY COPY_TO_TAG \
+     --ALIGNER_PROPER_PAIR_FLAGS true
   }
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
@@ -368,47 +356,7 @@ task MergeBamAlignment {
   }
   output {
     File output_bam = "${base_file_name}.merged.bam"
-  }
-}
-
-# Sort BAM file by coordinate order and fix tag values for NM and UQ
-task SortAndFixTags {
-  File input_bam
-  String base_file_name
-  File ref_dict
-  File ref_fasta
-  File ref_fasta_index
-
-  command {
-    set -o pipefail
-
-    /gatk/gatk --java-options "-Dsamjdk.compression_level=$5 -Xms4000m" \
-      SortSam \
-      --INPUT ${input_bam} \
-      --OUTPUT sorted.bam \
-      --SORT_ORDER "coordinate" \
-      --CREATE_INDEX false \
-      --CREATE_MD5_FILE false
-
-    /gatk/gatk --java-options "-Dsamjdk.compression_level=5 -Xms500m" \
-      SetNmAndUqTags \
-      --INPUT sorted.bam \
-      --OUTPUT ${base_file_name}.sorted.bam \
-      --CREATE_INDEX true \
-      --CREATE_MD5_FILE true \
-      --REFERENCE_SEQUENCE ${ref_fasta}
-
-  }
-
-  runtime {
-    docker: "broadinstitute/gatk:4.0.4.0"
-    memory: "8G"
-    cpu: "1"
-  }
-  output {
-    File output_bam = "${base_file_name}.sorted.bam"
-    File output_bam_index = "${base_file_name}.sorted.bai"
-    File output_bam_md5 = "${base_file_name}.sorted.bam.md5"
+    File output_bai = "${base_file_name}.merged.bai"
   }
 }
 
@@ -429,7 +377,7 @@ task BaseRecalibrator {
   File ref_fasta_index
 
   command {
-    /gatk/gatk --java-options "-Xms4000m" \
+    /gatk/gatk --java-options "-Xms4g" \
       BaseRecalibrator \
       -R ${ref_fasta} \
       -I ${input_bam} \
@@ -469,8 +417,6 @@ task ApplyBQSR {
       -I ${input_bam} \
       -O ${base_file_name}.recal.bam \
       -R ${ref_fasta} \
-      -L ${baserecal_bed_file} \
-      --static-quantized-quals 10 --static-quantized-quals 20 --static-quantized-quals 30 
   }
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
@@ -503,15 +449,13 @@ task HaplotypeCaller {
       HaplotypeCaller \
       -R ${ref_fasta} \
       -I ${input_bam} \
-      --dbsnp ${dbSNP_vcf}\
-      -L ${bed_file} \
       -O ${base_file_name}.GATK.vcf 
     }
 
   runtime {
     docker: "broadinstitute/gatk:4.0.4.0"
     memory: "14G"
-    cpu: "1"
+    cpu: "4"
   }
 
   output {
@@ -534,24 +478,24 @@ task bcftoolsMpileup {
   File dbSNP_vcf
 
   command {
-    set -e
+    set -eo pipefail
   
     bcftools mpileup \
-      -T ${bed_file} \
-      -Ov \
+      --max-depth 10000 \
+      --max-idepth 10000 \
       --annotate "FORMAT/AD,FORMAT/DP" \
       --fasta-ref ${ref_fasta} \
-      ${input_bam} | \
-    bcftools call -Ov -mv \
-          -T ${bed_file} \
+      --ignore-RG \
+      --no-BAQ \
+      ${input_bam} | bcftools call -Ov -mv \
           -o ${base_file_name}.SAM.vcf
 
     }
 
   runtime {
     docker: "quay.io/biocontainers/bcftools:1.9--h4da6232_0"
-    memory: "8G"
-    cpu: "1"
+    memory: "14G"
+    cpu: "4"
   }
 
   output {
@@ -566,43 +510,43 @@ task annovarConsensus {
   File input_SAM_vcf
   String base_file_name
   String ref_name
-  File annovardb
-  String annovar_operation
+  File annovarTAR
   String annovar_protocols
-  File table_annovar
+  String annovar_operation
 
   command {
-  set -e
+   set -eo pipefail
   
-  tar -C annovar/ -xvf ${annovardb}
+   tar -xzvf ${annovarTAR}
   
-  perl ${table_annovar} ${input_GATK_vcf} annovar/ \
-    -buildver ${ref_name} \
-    -outfile ${base_file_name}.GATK \
-    -remove \
-    -protocol ${annovar_protocols} \
-    -operation ${annovar_operation} \
-    -nastring . -vcfinput -csvout
+    perl annovar/table_annovar.pl ${input_GATK_vcf} annovar/humandb/ \
+      -buildver ${ref_name} \
+      -outfile ${base_file_name}.GATK \
+      -remove \
+     -protocol ${annovar_protocols} \
+     -operation ${annovar_operation} \
+      -nastring . -vcfinput
 
-  perl ${table_annovar} ${input_SAM_vcf} annovar/ \
-    -buildver ${ref_name} \
-    -outfile ${base_file_name}.SAM \
-    -remove \
-    -protocol ${annovar_protocols} \
-    -operation ${annovar_operation} \
-    -nastring . -vcfinput -csvout
+   perl annovar/table_annovar.pl ${input_SAM_vcf} annovar/humandb/ \
+      -buildver ${ref_name} \
+      -outfile ${base_file_name}.SAM \
+      -remove \
+      -protocol ${annovar_protocols} \
+      -operation ${annovar_operation} \
+      -nastring . -vcfinput
 
-  rmdir -r annovar 
   }
 
   runtime {
     docker: "perl:5.28.0"
-    memory: "2G"
+    memory: "4G"
     cpu: "1"
   }
 
   output {
-    File output_GATK_annotated = "${base_file_name}.GATK.{ref_name}_multianno.csv"
-    File output_SAM_annotated = "${base_file_name}.SAM.{ref_name}_multianno.csv"
+    File output_GATK_annotated_vcf = "${base_file_name}.GATK.${ref_name}_multianno.vcf"
+    File output_GATK_annotated_table = "${base_file_name}.GATK.${ref_name}_multianno.txt"
+    File output_SAM_annotated_vcf = "${base_file_name}.SAM.${ref_name}_multianno.vcf"
+    File output_SAM_annotated_table = "${base_file_name}.SAM.${ref_name}_multianno.txt"
   }
 }
