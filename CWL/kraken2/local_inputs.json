@@ -1,0 +1,8 @@
+{
+    "input_fastq": {
+        "class": "File",
+        "path": "local_inputs/test_input.fastq.gz"
+    },
+    "output_file": "test_output.csv"
+}
+
