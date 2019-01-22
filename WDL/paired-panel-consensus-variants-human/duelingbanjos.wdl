@@ -34,7 +34,7 @@
 ## - Picard (see gotc docker)
 ## - Samtools (see gotc docker)
 ##
-workflow Panel_BWA_GATK4_Samtools_Var_Annotate {
+workflow Panel_BWA_GATK4_Samtools_Var_Annotate_Split {
   File batchFile
   Array[Object] batchInfo = read_objects(batchFile)
 
@@ -224,7 +224,7 @@ task SamToFastq {
 
     find /cromwell_root/ -type f
     
-    java -Dsamjdk.compression_level=5 -Xms3000m -jar /opt/conda/share/picard-2.3.0-0/picard.jar \
+    java -Dsamjdk.compression_level=5 -Xms3000m -jar /usr/gitc/picard.jar \
       SamToFastq \
 			INPUT=${input_bam} \
 			FASTQ=${base_file_name}.fastq \
@@ -232,7 +232,7 @@ task SamToFastq {
 			NON_PF=true 
   }
   runtime {
-    docker: "biocontainers/picard:v2.3.0_cv3"
+    docker: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
     memory: "14 GB"
     cpu: "4"
   }
@@ -258,7 +258,7 @@ task BwaMem {
   command {
     set -eo pipefail
     
-    bwa mem \
+    /usr/gitc/bwa mem \
       -p -v 3 -t 16 -M \
       ${ref_fasta} ${base_file_name}.fastq | samtools view -1bS > ${base_file_name}.aligned.bam 
 

@@ -34,7 +34,7 @@
 ## - Picard (see gotc docker)
 ## - Samtools (see gotc docker)
 ##
-workflow Panel_BWA_GATK4_Samtools_Var_Annotate {
+workflow Panel_BWA_GATK4_Samtools_Var_Annotate_Split {
   File batchFile
   Array[Object] batchInfo = read_objects(batchFile)
 
@@ -258,13 +258,13 @@ task BwaMem {
   command {
     set -eo pipefail
     
-    bwa mem \
+    /usr/gitc/bwa mem \
       -p -v 3 -t 16 -M \
-      ${ref_fasta} ${base_file_name}.fastq | samtools view -1bS > ${base_file_name}.aligned.bam 
+      ${ref_fasta} ${input_fastq} | samtools view -1bS > ${base_file_name}.aligned.bam 
 
   }
   runtime {
-    docker: "biocontainers/bwa:v0.7.15_cv3"
+    docker: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
     memory: "14 GB"
     cpu: "16"
   }
