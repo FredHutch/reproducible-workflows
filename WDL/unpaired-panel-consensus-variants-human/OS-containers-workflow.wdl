@@ -221,8 +221,6 @@ task SamToFastq {
 
   command {
     set -eo pipefail
-
-    find /cromwell_root/ -type f
     
     java -Dsamjdk.compression_level=5 -Xms3000m -jar /opt/conda/share/picard-2.3.0-0/picard.jar \
       SamToFastq \
@@ -258,13 +256,13 @@ task BwaMem {
   command {
     set -eo pipefail
     
-    /usr/gitc/bwa mem \
+   bwa mem \
       -p -v 3 -t 16 -M \
       ${ref_fasta} ${input_fastq} | samtools view -1bS > ${base_file_name}.aligned.bam 
 
   }
   runtime {
-    docker: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
+    docker: "biocontainers/bwa:v0.7.15_cv3"
     memory: "14 GB"
     cpu: "16"
   }
