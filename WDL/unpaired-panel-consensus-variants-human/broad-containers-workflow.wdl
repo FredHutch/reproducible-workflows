@@ -222,7 +222,7 @@ task SamToFastq {
   command {
     set -eo pipefail
     
-    java -Dsamjdk.compression_level=5 -Xms3000m -jar /usr/gitcpicard.jar \
+    java -Dsamjdk.compression_level=5 -Xms3000m -jar /usr/gitc/picard.jar \
       SamToFastq \
 			INPUT=${input_bam} \
 			FASTQ=${base_file_name}.fastq \
