@@ -44,6 +44,7 @@ and inputs JSON, and is determined by the developer to be ready for use.  These 
   * WDL / denovo-gene-level-metagenomics-cags: Assemble a set of metagenomes, quantify genes, and make CAGs
   * CWL / metaPhlAn2: Taxonomic classification of WGS data from mixed microbial communities
   * WDL / denovo-assembly-metaspades: _De novo_ assembly of paired-end WGS datasets with metaSPAdes
+  * WDL / denovo-assembly-megahit: _De novo_ assembly of paired-end WGS datasets with megahit
 
 #### Under Development Workflows
 
