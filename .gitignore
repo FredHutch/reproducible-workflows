@@ -5,3 +5,5 @@
 GATK4-procforVariants/\.DS_Store
 
 \.DS_Store
+
+WDL/paired-panel-consensus-variants-human/\.Rhistory

@@ -17,18 +17,6 @@
 ## - samtools/bcftools vcf
 ## - Annovar annotated vcfs and tabular file for each variant caller
 ## 
-
-    Array[File] analysis_ready_bam = ApplyBQSR.recalibrated_bam 
-    Array[File] analysis_ready_bai = ApplyBQSR.recalibrated_bai
-    Array[File] analysis_ready_bam_md5 = ApplyBQSR.recalibrated_bam_md5
-    Array[File] GATK_vcf = HaplotypeCaller.output_vcf
-    Array[File] SAM_vcf = bcftoolsMpileup.output_vcf
-    Array[File] GATK_annotated_vcf = annovarConsensus.output_GATK_annotated_vcf
-    Array[File] GATK_annotated = annovarConsensus.output_GATK_annotated_table
-    Array[File] SAM_annotated_vcf = annovarConsensus.output_SAM_annotated_vcf
-    Array[File] SAM_annotated = annovarConsensus.output_SAM_annotated_table
-
-
 ## Software version requirements (see recommended dockers in inputs JSON)
 ## - GATK 4 or later (see gatk docker)
 ## - Picard (see gotc docker)
