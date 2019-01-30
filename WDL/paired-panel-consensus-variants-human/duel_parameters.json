@@ -1,6 +1,4 @@
 {
-  "##_COMMENT1": "BATCH FILE LOCATION",
-  "Panel_BWA_GATK4_Strelka_Var_Annotate_Paired.batchFile": "s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/paired-panel-consensus-variants-human/batchOfOne.tsv",
   "##_COMMENT2": "REFERENCE FILES",
   "Panel_BWA_GATK4_Strelka_Var_Annotate_Paired.ref_name": "hg38",
   "Panel_BWA_GATK4_Strelka_Var_Annotate_Paired.ref_fasta": "s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta",

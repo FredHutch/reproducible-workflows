@@ -1,0 +1,4 @@
+{
+  "##_COMMENT1": "BATCH FILE LOCATION",
+  "Panel_BWA_GATK4_Samtools_Var_Annotate_Split.batchFile": "s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/unpaired-panel-consensus-variants-human/batchOfOne.tsv"
+  }
