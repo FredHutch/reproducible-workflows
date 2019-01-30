@@ -1,0 +1,3 @@
+{
+    "genomeAnnotationProkka.sample_sheet": "s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/prokka/sample_sheet.txt"
+}

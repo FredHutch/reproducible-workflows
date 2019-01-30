@@ -45,6 +45,7 @@ and inputs JSON, and is determined by the developer to be ready for use.  These 
   * CWL / metaPhlAn2: Taxonomic classification of WGS data from mixed microbial communities
   * WDL / denovo-assembly-metaspades: _De novo_ assembly of paired-end WGS datasets with metaSPAdes
   * WDL / denovo-assembly-megahit: _De novo_ assembly of paired-end WGS datasets with megahit
+  * WDL / genome-annotation-prokka: Annotation of microbial genomes or contigs
 
 #### Under Development Workflows
 

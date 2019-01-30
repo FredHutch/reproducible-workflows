@@ -1,0 +1,1 @@
+java -Dconfig.file=$HOME/.cromwell/aws.conf -jar $HOME/.cromwell/cromwell-36.jar run genome-annotation-prokka.wdl -i inputs.json
