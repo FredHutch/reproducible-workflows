@@ -1,0 +1,2 @@
+s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/denovo_assembly/SRR3732371.fastq.gz
+s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/denovo_assembly/SRR3732372.fastq.gz

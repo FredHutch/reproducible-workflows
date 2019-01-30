@@ -1,0 +1,2 @@
+s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/prokka/SRR3732371.contigs.fasta.gz
+s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/prokka/SRR3732372.contigs.fasta.gz
