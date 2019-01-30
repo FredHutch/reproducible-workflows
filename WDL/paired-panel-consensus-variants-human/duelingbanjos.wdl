@@ -13,30 +13,19 @@
 ##
 ##
 ## Output :
-## - recalibrated bam and it's index and md5
+## - recalibrated bam and it's index for the sample and the reference
 ## - 
-## - GATK vcf
-## - samtools/bcftools vcf
+## - GATK/mutect2 vcf
+## - strelka2 vcf
 ## - Annovar annotated vcfs and tabular file for each variant caller
 ## 
-
-    Array[File] analysis_ready_bam = ApplyBQSR.recalibrated_bam 
-    Array[File] analysis_ready_bai = ApplyBQSR.recalibrated_bai
-    Array[File] analysis_ready_bam_md5 = ApplyBQSR.recalibrated_bam_md5
-    Array[File] GATK_vcf = HaplotypeCaller.output_vcf
-    Array[File] SAM_vcf = bcftoolsMpileup.output_vcf
-    Array[File] GATK_annotated_vcf = annovarConsensus.output_GATK_annotated_vcf
-    Array[File] GATK_annotated = annovarConsensus.output_GATK_annotated_table
-    Array[File] SAM_annotated_vcf = annovarConsensus.output_SAM_annotated_vcf
-    Array[File] SAM_annotated = annovarConsensus.output_SAM_annotated_table
-
 
 ## Software version requirements (see recommended dockers in inputs JSON)
 ## - GATK 4 or later (see gatk docker)
 ## - Picard (see gotc docker)
 ## - Samtools (see gotc docker)
 ##
-workflow Panel_BWA_GATK4_Strelka_Var_Annotate_PAIRED {
+workflow Panel_BWA_GATK4_Strelka_Var_Annotate_Paired {
   File batchFile
   Array[Object] batchInfo = read_objects(batchFile)
 
@@ -188,12 +177,18 @@ scatter (job in batchInfo){
         dbSNP_vcf = dbSNP_vcf
     }
 
+    # concatenate the VCF's from Strelka
+    call ConcatVCFs {
+      input:
+      first_vcf = Strelka2.output_indels_vcf,
+      second_vcf = Strelka2.output_snvs_vcf
+    }
 
     # Annotate both sets of variants
     call annovarConsensus {
       input:
         input_mutect_vcf = Mutect2.output_vcf,
-        input_strelka_vcf = Strelka2.output_vcf,
+        input_strelka_vcf = ConcatVCFs.merged_vcf,
         ref_name = ref_name,
         base_file_name = base_file_name,
         annovarTAR = annovarTAR,
@@ -211,7 +206,7 @@ scatter (job in batchInfo){
     Array[File] analysis_ready_ref_bai = ApplyBQSR.recalibrated_ref_bai
     Array[File] output_re_bam = Mutect2.output_re_bam
     Array[File] mutect_vcf = Mutect2.output_vcf
-    Array[File] strelka_vcf = Strelka2.output_vcf
+    Array[File] strelka_vcf = ConcatVCFs.merged_vcf
     Array[File] mutect_annotated_vcf = annovarConsensus.output_mutect_annotated_vcf
     Array[File] mutect_annotated = annovarConsensus.output_mutect_annotated_table
     Array[File] strelka_annotated_vcf = annovarConsensus.output_strelka_annotated_vcf
@@ -289,7 +284,7 @@ task BwaMem {
 
   }
   runtime {
-    docker: "biocontainers/bwa:v0.7.15_cv3"
+    docker: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
     memory: "14 GB"
     cpu: "16"
   }
@@ -418,6 +413,7 @@ task BaseRecalibrator {
 task ApplyBQSR {
   File input_bam
   File input_bam_index
+  String base_file_name
   File input_ref_bam
   File input_ref_bam_index
   String ref_file_name
@@ -519,12 +515,12 @@ task Strelka2 {
   command {
     set -eo pipefail
   
+
   configureStrelkaSomaticWorkflow.py \
     --normalBam=${input_ref_bam} \
     --tumorBam=${input_bam}\
     --referenceFasta=${ref_fasta} \
     --targeted \
-    --callRegions=${bed_file} \
     --runDir=strelkatemp
   
   strelkatemp/runWorkflow.py
@@ -543,14 +539,38 @@ task Strelka2 {
     File output_snvs_vcf = "${base_file_name}.somatic.snvs.vcf"
     File output_indels_vcf = "${base_file_name}.somatic.indels.vcf"
 }
+##--callRegions=${bed_file}  because it needs a bzip'd tabix indexed bed file bgzip -c file.vcf | tabix -p vcf bedfile.vcf.gz to get vcf.gz and vcf.gz.tbi
 ## https://github.com/BioContainers/containers/blob/master/strelka/2.9.7/Dockerfile
+}
 
+
+# Concatenate STrelka vcf's
+task ConcatVCFs {
+  File first_vcf
+  File second_vcf
+
+  command {
+    set -eo pipefail
+
+    bcftools sort -O v -o first.vcf ${first_vcf}
+    bcttools sort -O v -o second.vcf ${second_vcf}
+    bcftools concat -a -O v -o strelka.merged.vcf first.vcf second.vcf 
+  }
+
+  runtime {
+    docker: "quay.io/biocontainers/bcftools:1.9--h4da6232_0"
+    memory: "2G"
+    cpu: "1"
+  }
+  output {
+    File merged_vcf = "strelka.merged.vcf"
+  }
+}
 
 # annotate with annovar
 task annovarConsensus {
   File input_mutect_vcf
-  File input_strelka_snvs_vcf
-  File input_strelka_indels_vcf
+  File input_strelka_vcf
   String base_file_name
   String ref_name
   File annovarTAR
@@ -570,22 +590,13 @@ task annovarConsensus {
      -operation ${annovar_operation} \
       -nastring . -vcfinput
 
-   perl annovar/table_annovar.pl ${input_strelka_snvs_vcf} annovar/humandb/ \
+   perl annovar/table_annovar.pl ${input_strelka_vcf} annovar/humandb/ \
       -buildver ${ref_name} \
-      -outfile ${base_file_name}.SAM \
+      -outfile ${base_file_name}.strelka \
       -remove \
       -protocol ${annovar_protocols} \
       -operation ${annovar_operation} \
       -nastring . -vcfinput
-
-   perl annovar/table_annovar.pl ${input_strelka_indels_vcf} annovar/humandb/ \
-      -buildver ${ref_name} \
-      -outfile ${base_file_name}.strelka.indels \
-      -remove \
-      -protocol ${annovar_protocols} \
-      -operation ${annovar_operation} \
-      -nastring . -vcfinput
-
   }
 
   runtime {
@@ -595,9 +606,9 @@ task annovarConsensus {
   }
 
   output {
-    File output_GATK_annotated_vcf = "${base_file_name}.mutect.${ref_name}_multianno.vcf"
-    File output_GATK_annotated_table = "${base_file_name}.mutect.${ref_name}_multianno.txt"
-    File output_SAM_annotated_vcf = "${base_file_name}.strelka.snvs.${ref_name}_multianno.vcf"
-    File output_SAM_annotated_table = "${base_file_name}.strelka.snvs.${ref_name}_multianno.txt"
+    File output_mutect_annotated_vcf = "${base_file_name}.mutect.${ref_name}_multianno.vcf"
+    File output_mutect_annotated_table = "${base_file_name}.mutect.${ref_name}_multianno.txt"
+    File output_strelka_annotated_vcf = "${base_file_name}.strelka.${ref_name}_multianno.vcf"
+    File output_strelka_annotated_table = "${base_file_name}.strelka.${ref_name}_multianno.txt"
   }
 }
