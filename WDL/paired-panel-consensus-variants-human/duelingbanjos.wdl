@@ -472,14 +472,25 @@ task Mutect2 {
   command {
     set -eo pipefail
   
+    /gatk/gatk GetSampleName \
+     -I ${input_bam} \
+     -encode true \
+     -O sample_name.txt
+    
+
+    /gatk/gatk GetSampleName \
+     -I ${input_ref_bam} \
+     -encode true \
+     -O ref_name.txt
+
     /gatk/gatk --java-options "-Xmx2g" \
       Mutect2 \
       -R ${ref_fasta} \
       -I ${input_bam} \
       -I ${input_ref_bam} \
-      -normal ${ref_file_name} \
-      -tumor ${base_file_name} \
-      -O ${base_file_name}.mutect2.vcf 
+      -tumor `cat sample_name.txt` \
+      -normal `cat ref_name.txt` \
+      -O ${base_file_name}.mutect2.vcf \
       -bamout ${base_file_name}_${ref_file_name}.reassembled.bam
     }
 
@@ -523,7 +534,8 @@ task Strelka2 {
     --targeted \
     --runDir=strelkatemp
   
-  strelkatemp/runWorkflow.py
+  strelkatemp/runWorkflow.py -m local -j 8
+
   gunzip strelkatemp/results/variants/somatic.snvs.vcf.gz ${base_file_name}.somatic.snvs.vcf 
   gunzip strelkatemp/results/variants/somatic.indels.vcf.gz ${base_file_name}.somatic.indels.vcf 
 
@@ -532,7 +544,7 @@ task Strelka2 {
   runtime {
     docker: "quay.io/biocontainers/strelka:2.9.10--0"
     memory: "14G"
-    cpu: "4"
+    cpu: "8"
   }
 
   output {

@@ -1,3 +1,0 @@
-input_bam:
-  class: File
-  path: _INPUT_BAM_
