@@ -1,0 +1,4 @@
+{
+    "alignProteinsFAMLI.sample_sheet": "s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/denovo_assembly/sample_sheet.txt",
+    "alignProteinsFAMLI.ref_fastp": "s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/align-proteins-famli/SRR3732371.faa.gz"
+}
