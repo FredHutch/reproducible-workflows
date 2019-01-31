@@ -1,6 +1,0 @@
-bam:
-  class: File
-  path: /path/to/result/"ID".sort.redup.kary.reali.bam
-output: "ID".sort.redup.kary.reali.fix.bam
-sort: coordinate
-validation: SILENT

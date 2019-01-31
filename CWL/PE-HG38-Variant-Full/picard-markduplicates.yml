@@ -1,5 +1,0 @@
-bam:
-  class: File
-  path: /path/to/result/"ID".sort.bam
-output: "ID".sort.redup.bam
-metout: metrics.txt
