@@ -4,19 +4,19 @@ workflow denovoAssemblyPlass {
   Array[File] sample_list = read_lines(sample_sheet)
 
   scatter (sample in sample_list) {
-    call metaspades { 
+    call plass { 
       input: 
         input_fastq=sample
     }
   }
 
   output {
-    Array[File] contigs=metaspades.contigs
+    Array[File] contigs=plass.contigs
   }
 
 }
 
-task metaspades {
+task plass {
 
   File input_fastq
   String memory="64G"
