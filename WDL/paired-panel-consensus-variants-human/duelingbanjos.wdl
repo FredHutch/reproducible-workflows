@@ -181,7 +181,8 @@ scatter (job in batchInfo){
     call ConcatVCFs {
       input:
       first_vcf = Strelka2.output_indels_vcf,
-      second_vcf = Strelka2.output_snvs_vcf
+      second_vcf = Strelka2.output_snvs_vcf,
+      base_file_name = base_file_name
     }
 
     # Annotate both sets of variants
@@ -534,17 +535,23 @@ task Strelka2 {
     --targeted \
     --runDir=strelkatemp
   
-  strelkatemp/runWorkflow.py -m local -j 8
+  strelkatemp/runWorkflow.py -m local -j 12
+  
+  find . -name "*.vcf*"
 
-  gunzip strelkatemp/results/variants/somatic.snvs.vcf.gz ${base_file_name}.somatic.snvs.vcf 
-  gunzip strelkatemp/results/variants/somatic.indels.vcf.gz ${base_file_name}.somatic.indels.vcf 
+  gunzip strelkatemp/results/variants/somatic.snvs.vcf.gz 
+  mv strelkatemp/results/variants/somatic.snvs.vcf ${base_file_name}.somatic.snvs.vcf 
 
+  gunzip strelkatemp/results/variants/somatic.indels.vcf.gz
+  mv strelkatemp/results/variants/somatic.indels.vcf ${base_file_name}.somatic.indels.vcf 
+
+  find . -name "*.vcf*"
     }
 
   runtime {
     docker: "quay.io/biocontainers/strelka:2.9.10--0"
     memory: "14G"
-    cpu: "8"
+    cpu: "12"
   }
 
   output {
@@ -560,13 +567,14 @@ task Strelka2 {
 task ConcatVCFs {
   File first_vcf
   File second_vcf
+  String base_file_name
 
   command {
     set -eo pipefail
 
     bcftools sort -O v -o first.vcf ${first_vcf}
-    bcttools sort -O v -o second.vcf ${second_vcf}
-    bcftools concat -a -O v -o strelka.merged.vcf first.vcf second.vcf 
+    bcftools sort -O v -o second.vcf ${second_vcf}
+    bcftools concat -a -O v -o ${base_file_name}.strelka.merged.vcf first.vcf second.vcf 
   }
 
   runtime {
@@ -575,7 +583,7 @@ task ConcatVCFs {
     cpu: "1"
   }
   output {
-    File merged_vcf = "strelka.merged.vcf"
+    File merged_vcf = "${base_file_name}.strelka.merged.vcf"
   }
 }
 
