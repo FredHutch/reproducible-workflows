@@ -534,17 +534,23 @@ task Strelka2 {
     --targeted \
     --runDir=strelkatemp
   
-  strelkatemp/runWorkflow.py -m local -j 8
+  strelkatemp/runWorkflow.py -m local -j 12
+  
+  find . -name "*.vcf*"
 
-  gunzip strelkatemp/results/variants/somatic.snvs.vcf.gz ${base_file_name}.somatic.snvs.vcf 
-  gunzip strelkatemp/results/variants/somatic.indels.vcf.gz ${base_file_name}.somatic.indels.vcf 
+  gunzip strelkatemp/results/variants/somatic.snvs.vcf.gz 
+  mv strelkatemp/results/variants/somatic.snvs.vcf ${base_file_name}.somatic.snvs.vcf 
 
+  gunzip strelkatemp/results/variants/somatic.indels.vcf.gz
+  mv strelkatemp/results/variants/somatic.indels.vcf ${base_file_name}.somatic.indels.vcf 
+
+  find . -name "*.vcf*"
     }
 
   runtime {
     docker: "quay.io/biocontainers/strelka:2.9.10--0"
     memory: "14G"
-    cpu: "8"
+    cpu: "12"
   }
 
   output {
