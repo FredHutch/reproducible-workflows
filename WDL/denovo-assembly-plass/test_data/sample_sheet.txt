@@ -1,0 +1,2 @@
+test_data/SRR3732371.fastq.gz
+test_data/SRR3732372.fastq.gz
