@@ -50,7 +50,7 @@ task RunDiamond {
   File db
   File query
   String db_prefix = sub(db, ".dmnd", "")
-  String db_name = sub(sub(db, ".dmnd", ""), ".*/", "")
+  String db_name = basename(db, ".dmnd")
   String query_name = basename(query)
   String align_id = "50"
   String top_pct = "0"

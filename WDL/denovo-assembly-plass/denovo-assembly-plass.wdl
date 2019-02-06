@@ -1,12 +1,14 @@
 workflow denovoAssemblyPlass {
 
   File sample_sheet
+  String translation_table = "11"
   Array[File] sample_list = read_lines(sample_sheet)
 
   scatter (sample in sample_list) {
     call plass { 
       input: 
-        input_fastq=sample
+        input_fastq=sample,
+        translation_table=translation_table
     }
   }
 
@@ -19,12 +21,14 @@ workflow denovoAssemblyPlass {
 task plass {
 
   File input_fastq
+  String translation_table = "11"
   String memory="64G"
   String cpu="16"
   String output_name=basename(input_fastq, ".fastq.gz")
   
   runtime {
-    docker: "quay.io/biocontainers/plass@sha256:c771c791ad89d9f2c09720d7e127d5b0e6ee2a35ca7688a1b79c461c116ddd05"
+    # docker: "quay.io/biocontainers/plass@sha256:c771c791ad89d9f2c09720d7e127d5b0e6ee2a35ca7688a1b79c461c116ddd05"
+    docker: "soedinglab/plass"
     memory: memory
     cpu: cpu
   }
@@ -32,7 +36,7 @@ task plass {
   command {
     set -e; 
 
-    plass assemble ${input_fastq} ${output_name}.faa tmp
+    plass assemble --use-all-table-starts --translation-table ${translation_table} "${input_fastq}" "${output_name}.faa" tmp
     
     gzip ${output_name}.faa
 
