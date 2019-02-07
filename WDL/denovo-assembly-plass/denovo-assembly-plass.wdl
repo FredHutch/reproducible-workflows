@@ -38,6 +38,8 @@ task plass {
     set -e; 
 
     plass assemble --use-all-table-starts --min-length "${min_orf_length}" --translation-table ${translation_table} "${input_fastq}" "${output_name}.faa" tmp
+
+    rm -r tmp
     
     gzip ${output_name}.faa
 
