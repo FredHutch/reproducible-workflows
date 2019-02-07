@@ -22,6 +22,7 @@ task plass {
 
   File input_fastq
   String translation_table = "11"
+  String min_orf_length = "20"
   String memory="64G"
   String cpu="16"
   String output_name=basename(input_fastq, ".fastq.gz")
@@ -36,7 +37,7 @@ task plass {
   command {
     set -e; 
 
-    plass assemble --use-all-table-starts --translation-table ${translation_table} "${input_fastq}" "${output_name}.faa" tmp
+    plass assemble --use-all-table-starts --min-length "${min_orf_length}" --translation-table ${translation_table} "${input_fastq}" "${output_name}.faa" tmp
     
     gzip ${output_name}.faa
 
