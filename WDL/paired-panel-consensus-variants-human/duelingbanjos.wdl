@@ -180,8 +180,8 @@ scatter (job in batchInfo){
     # concatenate the VCF's from Strelka
     call ConcatVCFs {
       input:
-      first_vcf = Strelka2.output_indels_vcf,
-      second_vcf = Strelka2.output_snvs_vcf,
+      indel_vcf = Strelka2.output_indels_vcf,
+      snv_vcf = Strelka2.output_snvs_vcf,
       base_file_name = base_file_name
     }
 
@@ -539,11 +539,9 @@ task Strelka2 {
   
   find . -name "*.vcf*"
 
-  gunzip strelkatemp/results/variants/somatic.snvs.vcf.gz 
-  mv strelkatemp/results/variants/somatic.snvs.vcf ${base_file_name}.somatic.snvs.vcf 
+  mv strelkatemp/results/variants/somatic.snvs.vcf.gz ${base_file_name}.somatic.snvs.vcf.gz
 
-  gunzip strelkatemp/results/variants/somatic.indels.vcf.gz
-  mv strelkatemp/results/variants/somatic.indels.vcf ${base_file_name}.somatic.indels.vcf 
+  mv strelkatemp/results/variants/somatic.indels.vcf.gz ${base_file_name}.somatic.indels.vcf.gz
 
   find . -name "*.vcf*"
     }
@@ -555,8 +553,8 @@ task Strelka2 {
   }
 
   output {
-    File output_snvs_vcf = "${base_file_name}.somatic.snvs.vcf"
-    File output_indels_vcf = "${base_file_name}.somatic.indels.vcf"
+    File output_snvs_vcf = "${base_file_name}.somatic.snvs.vcf.gz"
+    File output_indels_vcf = "${base_file_name}.somatic.indels.vcf.gz"
 }
 ##--callRegions=${bed_file}  because it needs a bzip'd tabix indexed bed file bgzip -c file.vcf | tabix -p vcf bedfile.vcf.gz to get vcf.gz and vcf.gz.tbi
 ## https://github.com/BioContainers/containers/blob/master/strelka/2.9.7/Dockerfile
@@ -565,17 +563,34 @@ task Strelka2 {
 
 # Concatenate STrelka vcf's
 task ConcatVCFs {
-  File first_vcf
-  File second_vcf
+  File indel_vcf
+  File snv_vcf
   String base_file_name
 
-  command {
+  command <<<
     set -eo pipefail
 
-    bcftools sort -O v -o first.vcf ${first_vcf}
-    bcftools sort -O v -o second.vcf ${second_vcf}
-    bcftools concat -a -O v -o ${base_file_name}.strelka.merged.vcf first.vcf second.vcf 
-  }
+    echo "Sort both Strelka vcf's"
+    bcftools sort -O z -o indel.vcf.gz ${indel_vcf}
+    bcftools sort -O z -o snv.vcf.gz ${snv_vcf}
+
+    echo "Index both sorted Strelka vcf's"
+    bcftools index indel.vcf.gz
+    bcftools index snv.vcf.gz
+
+    echo "Concatenate the indel and snv vcfs"
+    bcftools concat -a -O v -o unformatted.vcf indel.vcf.gz snv.vcf.gz 
+
+    echo "Add a dummy GT entry to the FORMAT field."
+    first_format_num=$(grep -n -m 1 '##FORMAT' unformatted.vcf | cut -d : -f 1)
+    sed "$first_format_num"'i##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' unformatted.vcf > ${base_file_name}.strelka.merged.vcf
+
+    sed -ri 's|(DP:)|GT:\1|g' ${base_file_name}.strelka.merged.vcf
+    sed -ri 's|(GT:[^\t]*\t)|\10/1:|g' ${base_file_name}.strelka.merged.vcf
+
+    echo "After all this, what have we made?"
+    find . -name "*.vcf*"
+  >>>
 
   runtime {
     docker: "quay.io/biocontainers/bcftools:1.9--h4da6232_0"
@@ -583,7 +598,7 @@ task ConcatVCFs {
     cpu: "1"
   }
   output {
-    File merged_vcf = "${base_file_name}.strelka.merged.vcf"
+    File merged_vcf = "${base_file_name}.strelka.merged.formatted.vcf"
   }
 }
 
@@ -622,7 +637,7 @@ task annovarConsensus {
   runtime {
     docker: "perl:5.28.0"
     memory: "4G"
-    cpu: "1"
+    cpu: "6"
   }
 
   output {
