@@ -1,18 +1,18 @@
-import "sciWorkflow.wdl" as sub
+import "sciWorkflow.wdl" as sub1
 
 workflow batchSubmit {
-    File batchFile
-    Array[Object] batchInfo = read_objects(batchFile)
+    Array[String] batchString
 
-  scatter (job in batchInfo){
-    call sub.sciWorkflow {
+  scatter (job in batchString){
+    Array[String] chromosomes = ["chr1", "chr2"]
+
+    call sub1.sciWorkflow {
         input: 
-        sampleName=job.sampleName, 
-        bamLocation=job.bamLocation, 
-        bedLocation=job.bedLocation
+        sampleName=job,
+        chromosomes=chromosomes
     }
   }
   output {
-      Array[File] batch_output = sciWorkflow.workflow_out
+      Array[File] batch_output = sciWorkflow.subworkflow_out
   }
 }

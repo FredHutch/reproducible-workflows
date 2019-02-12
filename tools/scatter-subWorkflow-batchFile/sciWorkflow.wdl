@@ -1,28 +1,54 @@
 workflow sciWorkflow {
-    String sampleName 
-    File bamLocation
-    File bedLocation
-    call testTask {
+    Array[String] chromosomes
+    String sampleName
+
+    scatter (chr in chromosomes){
+      call printStrings {
         input: 
-        in1=sampleName, 
-        in2=bamLocation, 
-        in3=bedLocation
+        sampleName=sampleName,
+        chr=chr
+      }
+    }
+    call concatStrings {
+        input: 
+        files = printStrings.stdout
     }
     output {
-        File workflow_out = testTask.testTask_out
+      File subworkflow_out = concatStrings.mergedFiles
     }
   }
 
-task testTask {
-    String in1
-    String in2
-    String in3
+task printStrings {
+    String sampleName
+    String chr
+
     command {
-    echo ${in1}
-    echo ${in2}
-    echo ${in3}
+    echo "Analyzing Sample: ${sampleName}, for chromsosome: ${chr}."
     }
-    output {
-        File testTask_out = stdout()
+    runtime {
+    docker: "ubuntu:latest"
+    memory: "2 GB"
+    cpu: "1"
+  }
+  output {
+    File stdout=stdout()
+  }
+
+}
+
+task concatStrings {
+    Array[File] files
+
+    command {
+    cat write_lines(files) > merged.txt
     }
+    runtime {
+    docker: "ubuntu:latest"
+    memory: "2 GB"
+    cpu: "1"
+  }
+  output {
+    File mergedFiles = "merged.txt"
+  }
+
 }

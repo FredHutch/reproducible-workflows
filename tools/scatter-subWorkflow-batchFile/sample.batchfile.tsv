@@ -1,3 +1,0 @@
-sampleName	bamLocation	bedLocation	index
-sample1	s3://somebucket/unmapped1.bam	s3://somebucket/TruSight_One_v1.1.bed	0
-sample2	s3://somebucket/unmapped2.bam	s3://somebucket/TruSight_One_v1.1.bed	1
