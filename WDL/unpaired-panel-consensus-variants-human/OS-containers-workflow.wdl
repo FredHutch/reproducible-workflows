@@ -84,23 +84,6 @@ scatter (job in batchInfo){
   }
 
 
-
-#  # convert unmapped bam to fastq, Map reads to reference
-#   call SamToFastqAndBwaMem {
-#     input:
-#       input_bam = bamLocation,
-#       base_file_name = base_file_name,
-#       ref_fasta = ref_fasta,
-#       ref_fasta_index = ref_fasta_index,
-#       ref_dict = ref_dict,
-#       ref_alt = ref_alt,
-#       ref_amb = ref_amb,
-#       ref_ann = ref_ann,
-#       ref_bwt = ref_bwt,
-#       ref_pac = ref_pac,
-#       ref_sa = ref_sa
-#   }
-
   # Merge original uBAM and BWA-aligned BAM
   call MergeBamAlignment {
     input:
@@ -188,7 +171,6 @@ scatter (job in batchInfo){
   output {
     Array[File] analysis_ready_bam = ApplyBQSR.recalibrated_bam 
     Array[File] analysis_ready_bai = ApplyBQSR.recalibrated_bai
-    Array[File] analysis_ready_bam_md5 = ApplyBQSR.recalibrated_bam_md5
     Array[File] GATK_vcf = HaplotypeCaller.output_vcf
     Array[File] SAM_vcf = bcftoolsMpileup.output_vcf
     Array[File] GATK_annotated_vcf = annovarConsensus.output_GATK_annotated_vcf
@@ -256,53 +238,8 @@ task BwaMem {
   }
   output {
     File output_bam = "${base_file_name}.aligned.bam"
-    File output_bwa_error = "${base_file_name}.bwa.stderr.log"
   }
 }
-
-# # Read unmapped BAM, convert to FASTQ, align to genome
-# task SamToFastqAndBwaMem {
-#   File input_bam
-#   String base_file_name
-#   File ref_fasta
-#   File ref_fasta_index
-#   File ref_dict
-#   File? ref_alt
-#   File ref_amb
-#   File ref_ann
-#   File ref_bwt
-#   File ref_pac
-#   File ref_sa
-
-#   command {
-#     set -e
-#     set -o pipefail
-
-#     ls /cromwell_root/fh-ctr-public-reference-data/genome_data/human/hg38/
-    
-#     java -Dsamjdk.compression_level=5 -Xms3000m -jar /usr/gitc/picard.jar \
-#       SamToFastq \
-# 			INPUT=${input_bam} \
-# 			FASTQ=${base_file_name}.fastq \
-# 			INTERLEAVE=true \
-# 			NON_PF=true 
-
-#     /usr/gitc/bwa mem \
-#       -p -v 3 -t 16 -M \
-#       ${ref_fasta} ${base_file_name}.fastq | samtools view -1bS > ${base_file_name}.aligned.bam 
-
-#   }
-#   runtime {
-#     docker: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
-#     memory: "14G"
-#     cpu: "16"
-#   }
-#   output {
-#     File output_fastq = "${base_file_name}.fastq"
-#     File output_bam = "${base_file_name}.aligned.bam"
-#     File output_bwa_error = "${base_file_name}.bwa.stderr.log"
-#   }
-# }
 
 
 # Merge original input uBAM file with BWA-aligned BAM file
@@ -409,7 +346,6 @@ task ApplyBQSR {
   output {
     File recalibrated_bam = "${base_file_name}.recal.bam"
     File recalibrated_bai = "${base_file_name}.recal.bai"
-    File recalibrated_bam_md5 = "${base_file_name}.recal.bam.md5"
   }
 }
 

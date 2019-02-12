@@ -1,0 +1,281 @@
+## Batch Submit Subworkflow metadata:
+{
+  "workflowName": "batchSubmit",
+  "actualWorkflowLanguageVersion": "draft-2",
+  "submittedFiles": {
+    "workflow": "import \"sciWorkflow.wdl\" as sub1\n\nworkflow batchSubmit {\n    Array[String] batchString\n\n  scatter (job in batchString){\n    Array[String] chromosomes = [\"chr1\", \"chr2\"]\n\n    call sub1.sciWorkflow {\n        input: \n        sampleName=job,\n        chromosomes=chromosomes\n    }\n  }\n  output {\n      Array[File] batch_output = sciWorkflow.subworkflow_out\n  }\n}\n",
+    "root": "",
+    "options": "{\n\n}",
+    "inputs": "{\"batchSubmit.batchString\":[\"Sample-one\",\"Sample-two\",\"Sample-three\"]}",
+    "workflowUrl": "",
+    "labels": "{\n  \"user\": \"apaguiri\",\n  \"project\": \"workflowDevel\",\n  \"submissionType\": \"workflowTroubleshoot\"\n }\n",
+    "imports": {
+      "sciWorkflow.wdl": "workflow sciWorkflow {\n    Array[String] chromosomes\n    String sampleName\n\n    scatter (chr in chromosomes){\n      call printStrings {\n        input: \n        sampleName=sampleName,\n        chr=chr\n      }\n    }\n    call concatStrings {\n        input: \n        files = printStrings.stdout\n    }\n    output {\n      File subworkflow_out = concatStrings.mergedFiles\n    }\n  }\n\ntask printStrings {\n    String sampleName\n    String chr\n\n    command {\n    echo \"Analyzing Sample: ${sampleName}, for chromsosome: ${chr}.\"\n    }\n    runtime {\n    docker: \"ubuntu:latest\"\n    memory: \"2 GB\"\n    cpu: \"1\"\n  }\n  output {\n    File stdout=stdout()\n  }\n\n}\n\ntask concatStrings {\n    Array[File] files\n\n    command {\n    cat write_lines(files) > merged.txt\n    }\n    runtime {\n    docker: \"ubuntu:latest\"\n    memory: \"2 GB\"\n    cpu: \"1\"\n  }\n  output {\n    File mergedFiles = \"merged.txt\"\n  }\n\n}"
+    }
+  },
+  "calls": {
+    "batchSubmit.sciWorkflow": [
+      {
+        "retryableFailure": false,
+        "executionStatus": "Failed",
+        "shardIndex": 0,
+        "inputs": {
+          "chromosomes": [
+            "chr1",
+            "chr2"
+          ],
+          "sampleName": "Sample-one"
+        },
+        "failures": [
+          {
+            "causedBy": [
+              {
+                "causedBy": [
+                  {
+                    "causedBy": [
+                      {
+                        "causedBy": [],
+                        "message": "s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt"
+                      }
+                    ],
+                    "message": "Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt"
+                  }
+                ],
+                "message": "[Attempted 1 time(s)] - IOException: Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt"
+              }
+            ],
+            "message": "Workflow failed"
+          }
+        ],
+        "end": "2019-02-12T19:00:03.733Z",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2019-02-12T18:59:05.549Z",
+            "description": "SubWorkflowRunningState",
+            "endTime": "2019-02-12T19:00:03.733Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "SubWorkflowPreparingState",
+            "endTime": "2019-02-12T18:59:05.549Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "SubWorkflowPendingState",
+            "endTime": "2019-02-12T18:59:05.543Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2019-02-12T18:59:05.543Z"
+          }
+        ],
+        "start": "2019-02-12T18:59:05.543Z",
+        "subWorkflowId": "40ef0508-de56-4e0e-b9d5-0441381c36c7"
+      },
+      {
+        "retryableFailure": false,
+        "executionStatus": "Failed",
+        "shardIndex": 1,
+        "inputs": {
+          "chromosomes": [
+            "chr1",
+            "chr2"
+          ],
+          "sampleName": "Sample-two"
+        },
+        "failures": [
+          {
+            "causedBy": [
+              {
+                "causedBy": [
+                  {
+                    "causedBy": [
+                      {
+                        "causedBy": [],
+                        "message": "s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt"
+                      }
+                    ],
+                    "message": "Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt"
+                  }
+                ],
+                "message": "[Attempted 1 time(s)] - IOException: Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt"
+              }
+            ],
+            "message": "Workflow failed"
+          }
+        ],
+        "end": "2019-02-12T19:00:04.755Z",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "SubWorkflowPreparingState",
+            "endTime": "2019-02-12T18:59:05.549Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2019-02-12T18:59:05.543Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.549Z",
+            "description": "SubWorkflowRunningState",
+            "endTime": "2019-02-12T19:00:04.754Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "SubWorkflowPendingState",
+            "endTime": "2019-02-12T18:59:05.543Z"
+          }
+        ],
+        "start": "2019-02-12T18:59:05.543Z",
+        "subWorkflowId": "92aca1fd-dd7f-4421-8528-c9f49691a7d9"
+      },
+      {
+        "retryableFailure": false,
+        "executionStatus": "Failed",
+        "shardIndex": 2,
+        "inputs": {
+          "chromosomes": [
+            "chr1",
+            "chr2"
+          ],
+          "sampleName": "Sample-three"
+        },
+        "failures": [
+          {
+            "causedBy": [
+              {
+                "causedBy": [
+                  {
+                    "causedBy": [
+                      {
+                        "causedBy": [],
+                        "message": "s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt"
+                      }
+                    ],
+                    "message": "Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt"
+                  }
+                ],
+                "message": "[Attempted 1 time(s)] - IOException: Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt"
+              }
+            ],
+            "message": "Workflow failed"
+          }
+        ],
+        "end": "2019-02-12T19:00:04.753Z",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "SubWorkflowPreparingState",
+            "endTime": "2019-02-12T18:59:05.547Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.547Z",
+            "description": "SubWorkflowRunningState",
+            "endTime": "2019-02-12T19:00:04.754Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "SubWorkflowPendingState",
+            "endTime": "2019-02-12T18:59:05.543Z"
+          },
+          {
+            "startTime": "2019-02-12T18:59:05.543Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2019-02-12T18:59:05.543Z"
+          }
+        ],
+        "start": "2019-02-12T18:59:05.543Z",
+        "subWorkflowId": "c8bce0ec-ad5b-49ed-afac-ceff7f088b32"
+      }
+    ]
+  },
+  "outputs": {},
+  "actualWorkflowLanguage": "WDL",
+  "id": "73f28871-cb71-4c13-9d30-d2f40637d382",
+  "inputs": {
+    "batchSubmit.batchString": [
+      "Sample-one",
+      "Sample-two",
+      "Sample-three"
+    ]
+  },
+  "labels": {
+    "project": "workflowDevel",
+    "user": "apaguiri",
+    "submissionType": "workflowTroubleshoot",
+    "cromwell-workflow-id": "cromwell-73f28871-cb71-4c13-9d30-d2f40637d382"
+  },
+  "submission": "2019-02-12T18:58:50.369Z",
+  "status": "Failed",
+  "failures": [
+    {
+      "causedBy": [
+        {
+          "causedBy": [
+            {
+              "causedBy": [
+                {
+                  "causedBy": [
+                    {
+                      "causedBy": [],
+                      "message": "s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt"
+                    }
+                  ],
+                  "message": "Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt"
+                }
+              ],
+              "message": "[Attempted 1 time(s)] - IOException: Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-0/sub1.sciWorkflow/40ef0508-de56-4e0e-b9d5-0441381c36c7/call-concatStrings/concatStrings-rc.txt"
+            }
+          ],
+          "message": "Workflow failed"
+        },
+        {
+          "causedBy": [
+            {
+              "causedBy": [
+                {
+                  "causedBy": [
+                    {
+                      "causedBy": [],
+                      "message": "s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt"
+                    }
+                  ],
+                  "message": "Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt"
+                }
+              ],
+              "message": "[Attempted 1 time(s)] - IOException: Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-2/sub1.sciWorkflow/c8bce0ec-ad5b-49ed-afac-ceff7f088b32/call-concatStrings/concatStrings-rc.txt"
+            }
+          ],
+          "message": "Workflow failed"
+        },
+        {
+          "causedBy": [
+            {
+              "causedBy": [
+                {
+                  "causedBy": [
+                    {
+                      "causedBy": [],
+                      "message": "s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt"
+                    }
+                  ],
+                  "message": "Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt"
+                }
+              ],
+              "message": "[Attempted 1 time(s)] - IOException: Could not read from s3://some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt: s3://s3.amazonaws.com/some-bucket/cromwell-output/batchSubmit/73f28871-cb71-4c13-9d30-d2f40637d382/call-sciWorkflow/shard-1/sub1.sciWorkflow/92aca1fd-dd7f-4421-8528-c9f49691a7d9/call-concatStrings/concatStrings-rc.txt"
+            }
+          ],
+          "message": "Workflow failed"
+        }
+      ],
+      "message": "Workflow failed"
+    }
+  ],
+  "end": "2019-02-12T19:00:05.775Z",
+  "start": "2019-02-12T18:59:00.340Z"
+}
