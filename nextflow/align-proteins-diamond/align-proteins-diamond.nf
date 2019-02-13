@@ -8,6 +8,8 @@ process make_diamond_db {
   publishDir "$params.outdir/"
 
   container "quay.io/fhcrc-microbiome/docker-diamond@sha256:0f06003c4190e5a1bf73d806146c1b0a3b0d3276d718a50e920670cf1bb395ed"
+  cpus 1
+  memory "2 GB"
 
   input:
   file fasta from ref_fasta_f
@@ -25,6 +27,8 @@ process align_diamond {
   publishDir "$params.outdir/"
 
   container "quay.io/fhcrc-microbiome/docker-diamond@sha256:0f06003c4190e5a1bf73d806146c1b0a3b0d3276d718a50e920670cf1bb395ed"
+  cpus 4
+  memory "2 GB"
 
   input:
   file ref from ref_fasta_f
@@ -51,7 +55,7 @@ process align_diamond {
       --top 0 \
       --query-cover 50 \
       --subject-cover 50 \
-      --threads 1;
+      --threads 4;
 
   gzip ${query.simpleName}.${ref.simpleName}.aln
   """  
