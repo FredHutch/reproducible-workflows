@@ -40,7 +40,7 @@ task concatStrings {
     Array[File] files
 
     command {
-    cat write_lines(files) > merged.txt
+    cat ${write_lines(files)} > merged.txt
     }
     runtime {
     docker: "ubuntu:latest"
