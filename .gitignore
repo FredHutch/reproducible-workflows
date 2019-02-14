@@ -3,6 +3,8 @@
 */cromwell-workflow-logs/
 */*/cromwell-workflow-logs/
 GATK4-procforVariants/\.DS_Store
+.*
+work/
 
 \.DS_Store
 
