@@ -1,0 +1,5 @@
+{
+  "sciWorkflow.chromosomes": ["chr1", "chr2", "ch3"],
+  "sciWorkflow.batchString": ["sample1", "sample2", "sample3"]
+}
+
