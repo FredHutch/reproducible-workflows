@@ -1,12 +1,22 @@
-workflow sciWorkflow {
-    Array[String] chromosomes
-    Array[String] batchString
 
-  scatter (job in batchString){
+## The goal here would be to scatter over a batch file in S3 of 400+ independent datasets,
+## then perform using the same workflow options and paramters, a series of tasks, which could
+## include a scatter/scatter-gather format.  Independent jobs should complete if possible 
+## regardless of other dataset-scatter shards.  
+workflow sciWorkflow {
+    File batchFile
+    Array[String] chromosomes
+    Array[Object] batchInfo = read_objects(batchFile)
+
+  scatter (job in batchInfo){
+    String sampleName = job.sampleName
+    String metadata1 = job.metadata1
+
     scatter (chr in chromosomes){
       call printStrings {
         input:
-        sampleName = job,
+        sample = sampleName,
+        metadata = metadata1,
         chr = chr
       }
     }
@@ -21,11 +31,12 @@ workflow sciWorkflow {
 }
 
 task printStrings {
-    String sampleName
+    String sample
+    String metadata
     String chr
 
   command {
-    echo "Analyzing Sample: ${sampleName}, for chromsosome: ${chr}."
+    echo "Analyzing Sample: ${sample}, with metadata ${metadata}, for chromosome: ${chr}."
     }
   
   runtime {
