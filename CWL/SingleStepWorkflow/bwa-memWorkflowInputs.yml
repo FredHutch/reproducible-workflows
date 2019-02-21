@@ -1,24 +1,24 @@
 # BWA parameters.
 fq1:
   class: File
-  path: s3://fh-pi-paguirigan-a/hackathon2018/rawData/Sample_CM-M40-O40-K20-R1/CM-M40-O40-K20-R1_R1.fastq.gz
+  path: s3://fh-ctr-public-reference-data/workflow_testing_data/CWL/SingleStepWorkflow/fastq/Sample_CM-M50-O50-100-A1/CM-M50-O50-100-A1_R1_1.fastq.gz
 fq2:
   class: File
-  path: s3://fh-pi-paguirigan-a/hackathon2018/rawData/Sample_CM-M40-O40-K20-R1/CM-M40-O40-K20-R1_R2.fastq.gz
+  path: s3://fh-ctr-public-reference-data/workflow_testing_data/CWL/SingleStepWorkflow/fastq/Sample_CM-M50-O50-100-A1/CM-M50-O50-100-A1_R2_1.fastq.gz
 genome_index:
   class: File
-  path: s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.fasta
+  path: s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta
   secondaryFiles:
     - class: File
-      path: s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.fasta.ann
+      path: s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.ann
     - class: File
-      path: s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.fasta.bwt
+      path: s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.bwt
     - class: File
-      path: s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.fasta.pac
+      path: s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.pac
     - class: File
-      path: s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.fasta.sa
+      path: s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.sa
     - class: File
-      path: s3://fh-pi-paguirigan-a/hackathon2018/bundle/hg38/Homo_sapiens_assembly38.fasta.amb
+      path: s3://fh-ctr-public-reference-data/genome_data/human/hg38/Homo_sapiens_assembly38.fasta.amb
   genome_version: GRCh38
 mem: true
 mark_shorter_split_hits: true
