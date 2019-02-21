@@ -1,0 +1,7 @@
+{
+    "workflow_failure_mode": "ContinueWhilePossible",
+    "default_runtime_attributes": {
+        "maxRetries": 3,
+        "continueOnReturnCode": [4, 8, 15, 16, 23, 42]
+    }
+}

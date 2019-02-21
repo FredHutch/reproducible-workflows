@@ -1,0 +1,5 @@
+{
+  "batchTesting.batchFile": "s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/nestedScatter/nestedScatter-batch.tsv",
+  "batchTesting.chromosomes": ["chr1", "chr2", "ch3"]
+}
+
