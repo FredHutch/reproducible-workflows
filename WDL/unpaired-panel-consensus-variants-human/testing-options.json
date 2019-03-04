@@ -1,0 +1,6 @@
+{
+    "maxRetries": 2,
+    "workflow_failure_mode": "ContinueWhilePossible",
+    "write_to_cache": true,
+    "read_from_cache": true
+ }
