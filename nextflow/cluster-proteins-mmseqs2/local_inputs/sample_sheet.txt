@@ -1,0 +1,3 @@
+local_inputs/enterobacteria_phage_ID1.faa
+local_inputs/enterobacteria_phage_S13.faa
+local_inputs/enterobacteria_phage_S13.faa.gz

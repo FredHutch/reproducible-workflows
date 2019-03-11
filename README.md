@@ -47,6 +47,8 @@ and inputs JSON, and is determined by the developer to be ready for use.  These 
   * WDL / denovo-assembly-megahit: _De novo_ assembly of paired-end WGS datasets with megahit
   * WDL / denovo-assembly-plass: _De novo_ assembly of protein-coding genes
   * WDL / genome-annotation-prokka: Annotation of microbial genomes or contigs
+  * Nextflow / cluster-proteins-mmseqs2: Cluster a set of protein FASTAs
+  * Nextflow / align-proteins-diamond: Align a set of protein FASTAs against a reference
 
 #### Under Development Workflows
 
