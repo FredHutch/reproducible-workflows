@@ -15,7 +15,7 @@ process make_diamond_db {
   file fasta from ref_fasta_f
 
   output:
-  file "${fasta.simpleName}.dmnd" into align_diamond
+  file "${fasta.simpleName}.dmnd" into dmnd
 
   """
   diamond makedb --in $fasta --db ${fasta.simpleName}.dmnd
@@ -31,25 +31,20 @@ process align_diamond {
   memory "2 GB"
 
   input:
-  file ref from ref_fasta_f
-  file query from query_ch
+  file ref from dmnd
+  each file(query) from query_ch
 
   output:
-  file "${query.simpleName}.${ref.simpleName}.aln.gz"
+  file "${query}.${ref}.aln.gz" into aln_ch
 
   """
   set -e;
 
-  gzip -t ${query} && \
-    echo "Decompressing ${query}" && \
-    gunzip -c ${query} > ${query}.fasta || \
-    ln -s ${query} ${query}.fasta
-
   diamond \
       blastp \
       --db ${ref} \
-      --query ${query}.fasta \
-      --out ${query.simpleName}.${ref.simpleName}.aln \
+      --query ${query} \
+      --out ${query}.${ref}.aln \
       --outfmt 6 \
       --id 50 \
       --top 0 \
@@ -57,6 +52,26 @@ process align_diamond {
       --subject-cover 50 \
       --threads 4;
 
-  gzip ${query.simpleName}.${ref.simpleName}.aln
+  gzip ${query}.${ref}.aln
   """  
+}
+
+process make_tarball {
+
+  publishDir "$params.outdir/"
+
+  container "quay.io/fhcrc-microbiome/docker-diamond@sha256:0f06003c4190e5a1bf73d806146c1b0a3b0d3276d718a50e920670cf1bb395ed"
+  cpus 4
+  memory "2 GB"
+
+  input:
+  file all_aln from aln_ch.collect()
+
+  output:
+  file "all_alignments.tar"
+
+  """
+  tar cvf all_alignments.tar *aln.gz
+  """
+
 }
