@@ -1,5 +1,8 @@
 fastq_pair_ch = Channel.fromFilePairs(params.input_folder + '/*_{1,2}.fastq.gz', flat:true)
 
+// Alternate potential file pair naming pattern
+// fastq_pair_ch = Channel.fromFilePairs(params.input_folder + '/*_R{1,2}_00*.fastq.gz', flat:true)
+
 process interleave_fastq_pairs {
   publishDir params.output_folder
 
