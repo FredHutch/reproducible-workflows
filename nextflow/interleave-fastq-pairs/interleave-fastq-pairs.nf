@@ -19,8 +19,10 @@ process interleave_fastq_pairs {
   """
   set -e
 
-  # Some basic checks that the line numbers match
-  (( \$(gunzip -c ${fastq1} | wc l) == \$(gunzip -c ${fastq2} | wc l) ))
+  # Some basic checks that the files exist and the line numbers match
+  [[ -s "${fastq1}" ]]
+  [[ -s "${fastq2}" ]]
+  (( \$(gunzip -c ${fastq1} | wc -l) == \$(gunzip -c ${fastq2} | wc -l) ))
 
   # Now interleave the files
   paste <(gunzip -c ${fastq1}) <(gunzip -c ${fastq2}) | paste - - - - | awk -v OFS="\\n" -v FS="\\t" '{print(\$1,\$3,\$5,\$7,\$2,\$4,\$6,\$8)}' | gzip -c > "${pair_name}.fastq.gz"
