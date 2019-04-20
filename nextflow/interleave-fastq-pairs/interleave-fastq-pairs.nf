@@ -9,6 +9,7 @@ process interleave_fastq_pairs {
   container "ubuntu:16.04"
   cpus 1
   memory "1 GB"
+  errorStrategy "retry"
 
   input:
   set pair_name, file(fastq1), file(fastq2) from fastq_pair_ch
