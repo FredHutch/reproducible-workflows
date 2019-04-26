@@ -230,7 +230,7 @@ process HaplotypeCaller {
     file dbSNP_vcf_index from file(params.dbSNP_vcf_index)
     
     output:
-    set val("${sample_name}"), file("${sample_name}.${ref_name}.GATK.vcf"), file("${sample_name}.${ref_name}.GATK.vcf.tbi") into annovar_ch
+    set val("${sample_name}"), file("${sample_name}.${ref_name}.GATK.vcf"), file("${sample_name}.${ref_name}.GATK.vcf.idx") into annovar_ch
 
     """
     set -eo pipefail
@@ -239,7 +239,9 @@ process HaplotypeCaller {
       HaplotypeCaller \
       -R ${ref_fasta} \
       -I ${input_bam} \
-      -O ${sample_name}.${ref_name}.GATK.vcf 
+      -O ${sample_name}.${ref_name}.GATK.vcf
+
+    ls -lhtr
     """
 
 }
@@ -289,7 +291,7 @@ process annovarConsensus {
     publishDir "${params.output_directory}"
 
     input:
-    set val(sample_name), file(input_GATK_vcf), file(input_GATK_vcf_tbi), file(input_SAM_vcf) from annovar_ch.join(bcftools_ch)
+    set val(sample_name), file(input_GATK_vcf), file(input_GATK_vcf_idx), file(input_SAM_vcf) from annovar_ch.join(bcftools_ch)
     val ref_name from params.ref_name
     file annovarTAR from file(params.annovarTAR)
     val annovar_protocols from params.annovar_protocols
