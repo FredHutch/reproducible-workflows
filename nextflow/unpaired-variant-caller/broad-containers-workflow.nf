@@ -196,7 +196,8 @@ process ApplyBQSR {
     file ref_fasta_index from file(params.ref_fasta_index)
 
     output:
-    set file("${sample_name}.${ref_name}.recal.bam"), file("${sample_name}.${ref_name}.recal.bai")
+    file "${sample_name}.${ref_name}.recal.bam"
+    file "${sample_name}.${ref_name}.recal.bai"
 
     """
     set -eo pipefail
