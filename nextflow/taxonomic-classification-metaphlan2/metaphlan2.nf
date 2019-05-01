@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 
 fastq_ch = Channel.from(file(params.manifest).readLines())
+                  .map {it -> file(it)}
 params.input_type = "fastq"
 
 process metaphlan2 {
