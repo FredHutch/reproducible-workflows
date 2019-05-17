@@ -1,2 +1,0 @@
-sampleName	refBamLocation	sampleBamLocation	bedLocation	index
-smallTestData	s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/paired-panel-consensus-variants-human/smallTestData-reference.unmapped.bam	s3://fh-ctr-public-reference-data/workflow_testing_data/WDL/paired-panel-consensus-variants-human/smallTestData.unmapped.bam	s3://fh-ctr-public-reference-data/reagent_specific_data/sequencing_panel_bed/TruSight-Myeloid-Illumina/trusight-myeloid-amplicon-track_interval.bed	0
