@@ -27,7 +27,7 @@ echo "classify.seqs(fasta=input.fasta, template=/usr/local/dbs/silva.bacteria.fa
 
 mothur batchfile
 
-cat *.wang.taxonomy | sort | uniq -c | sort -nr > ${fasta}.tax.counts
+cat *.wang.taxonomy | cut -f 2 | sort | uniq -c | sort -nr > ${fasta}.tax.counts
 
   """
 }
